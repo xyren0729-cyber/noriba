@@ -65,7 +65,8 @@ h1{font-size:18px;margin:0;letter-spacing:.08em}
 .start button{border:0;background:none;padding:0;color:var(--ink);font-weight:700;text-decoration:underline}
 
 /* 行き先の切替 */
-.dest{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dest{display:flex;gap:6px}
+.dest button{flex:1;min-width:0}
 .dest button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px;font-weight:700;font-size:16px}
 .dest button[aria-pressed="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 
@@ -76,7 +77,9 @@ h1{font-size:18px;margin:0;letter-spacing:.08em}
 .hero[data-s="now"]{--hb:var(--now);--hi:var(--heroink)}
 .hero[data-s="late"]{--hb:var(--late);--hi:var(--heroink)}
 .hero[data-s="info"]{--hb:var(--info);--hi:var(--heroink)}
-.hero .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hero .top{display:flex;align-items:center;gap:10px;min-width:0}
+.hero .top .lv{flex:none}
+.hero .top .goal{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .hero .lv{font-weight:700;font-size:15px;letter-spacing:.06em;border:2px solid currentColor;border-radius:6px;padding:0 8px}
 .hero .goal{font-size:14px;opacity:.92}
 .hero .lab{font-size:14px;opacity:.9}
@@ -98,6 +101,30 @@ h1{font-size:18px;margin:0;letter-spacing:.08em}
 .tl .edge.l{left:0}.tl .edge.r{right:0}
 .tl{margin-bottom:10px}
 
+/* お知らせ（遅延・警報・雨）。何もない日は出さない */
+.alerts{display:grid;gap:6px}
+.al{font-size:13px;line-height:1.45;padding:7px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sub)}
+.al.bad{border-left-color:var(--bad);font-weight:700}
+.al.warn{border-left-color:var(--warn)}
+.al.info{border-left-color:var(--ok);color:var(--sub)}
+/* 記録ボタン：主役カードの中で控えめに */
+.labrow{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px}
+.trip{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.95}
+.tb{border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:4px 14px;font-weight:700;font-size:14px}
+.chk{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:15px}
+.chk input{width:18px;height:18px;vertical-align:-3px;accent-color:var(--ok)}
+.chk label{display:block}
+.act.small{padding:4px 12px;font-size:13px;justify-self:start;margin-top:4px}
+.wornok{color:var(--ok)!important;font-weight:700}
+details.more{border:0;padding:0;background:none}
+details.more summary{font-size:13px;color:var(--sub);font-weight:400;padding:4px 0}
+.songs{margin:0;padding-left:1.4em;display:grid;gap:2px;font-size:14px}
+.songs span{color:var(--sub);font-size:12px;margin-left:6px}
+.sh span{float:right;font-weight:400;letter-spacing:0}
+pre.ex{margin:0;font:13px/1.5 var(--f-body);color:var(--sub);background:var(--bg);border-radius:8px;padding:6px 10px;white-space:pre-wrap}
+.loglist{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+.loglist li{display:grid;grid-template-columns:3em 1fr auto auto;gap:8px}
+.loglist .lt{color:var(--bad);font-weight:700}
 /* ページとタブ */
 .page{display:grid;gap:10px}
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
@@ -111,14 +138,17 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .mini{display:flex;flex-wrap:nowrap;gap:12px;white-space:nowrap;overflow:hidden;align-items:baseline;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:14px}
 .mini b{font-variant-numeric:tabular-nums}
 .mini span{color:var(--sub);font-size:12px;margin-right:4px}
-.mini>div{flex:none}
-.mini>div.w{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.mini>div{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.mini>div:first-child,.mini .more{flex:none}
+.mini>div.w{flex-shrink:1}
+.mini>div:not(.w):not(:first-child):not(.more){flex-shrink:4}
 .mini .more{margin-left:auto;color:var(--sub);font-size:12px}
 /* 行程（1枚に詰める） */
 .route{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline;font-size:14px;line-height:1.5}
 .route .st b{font-variant-numeric:tabular-nums;margin-right:3px}
 .route .ar{color:var(--sub)}
 .route .xf{color:var(--sub);font-size:12px}
+.route .via{font-size:12px;font-weight:700;background:var(--bg);border-radius:4px;padding:1px 7px;margin-right:2px}
 .route .alts{flex-basis:100%;color:var(--sub);font-size:12px;border-top:1px solid var(--line);padding-top:4px;margin-top:2px}
 /* 行程 */
 .steps{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px}
@@ -137,7 +167,7 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .ttbtn{border:1px solid var(--panelline);background:transparent;color:var(--ledw);border-radius:6px;padding:1px 8px;font-size:12px;margin-left:6px}
 .full{border-top:1px solid var(--panelline);padding-top:8px}
 .rows{list-style:none;margin:0;padding:0}
-.rows li{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 14px;border-top:1px solid var(--panelline)}
+.rows li{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:10px;align-items:center;padding:4px 14px;border-top:1px solid var(--panelline)}
 .rows li:first-child{border-top:0}
 .rows .tm{font-family:var(--f-led);color:var(--led);font-size:20px;font-variant-numeric:tabular-nums}
 .rows .ds{font-size:13px;color:var(--ledsub);min-width:0}
@@ -227,6 +257,7 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
 <button class="exnote" id="exnote" hidden>例のデータで表示中・自分の設定にする ›</button>
 
 <div class="page" id="p-morning">
+<div class="alerts" id="alerts" role="status" hidden></div>
 <div class="dest" id="dest" role="group" aria-label="行き先"></div>
 
 <section class="hero" id="hero" data-s="info" aria-live="polite"></section>
@@ -240,9 +271,10 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <section class="card" id="weather" aria-label="天気"><h2>天気と体感温度</h2><p class="sm">取得中…</p></section>
   <section class="card" id="wear" aria-label="今日の服"><h2>今日の服</h2><p class="sm">天気を待っています…</p></section>
 </div>
+<section class="card" id="classes" aria-label="今日の授業"></section>
+<section class="card" id="items" aria-label="今日の持ち物" hidden></section>
 <section class="card" id="trend" aria-label="今日の気温の推移" hidden></section>
 <section class="card" id="song" aria-label="今日の1曲"></section>
-<section class="card" id="classes" aria-label="今日の授業"></section>
 </div>
 <div class="page" id="p-setup" hidden>
 <section class="example" id="example" hidden>
@@ -255,17 +287,35 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <span>入力した内容は自動で保存され、あなたにしか見えません。</span>
 </section>
 
-<p class="sh">入力すると自動で保存されます</p>
+<p class="sh">通学<span>入力すると自動で保存されます</span></p>
 <details id="s-route"><summary>経路と時刻表</summary><div class="pane" id="routeedit"></div></details>
+<details id="s-cal"><summary>学年暦（休み・振替・休講）</summary><div class="pane">
+  <p class="hint">1行に1つ。日付は「月/日」、期間は「月/日-月/日」。書いた日は時間割より優先します。</p>
+  <pre class="ex">12/24-1/7 休み
+11/23 月曜授業
+11/10 2限休講
+1/20 授業なし</pre>
+  <label class="f">学年暦<textarea id="cal"></textarea></label>
+  <p class="hint" id="calmsg"></p>
+</div></details>
+<p class="sh">学校</p>
 <details id="s-class"><summary>時間割</summary><div class="pane" id="classedit"></div></details>
+<details id="s-items"><summary>持ち物</summary><div class="pane">
+  <p class="hint">「毎日: 」と曜日ごとに書きます。授業のある日だけ「今日」のページに出て、チェックできます。</p>
+  <pre class="ex">毎日: 学生証、PC、充電器
+月: 留学特別演習のファイル
+金: 英語のテキスト</pre>
+  <label class="f">持ち物<textarea id="itemsin"></textarea></label>
+</div></details>
+<p class="sh">身の回り</p>
 <details id="s-wear"><summary>持っている服</summary><div class="pane">
   <p class="hint">1行に1着。暖かさは名前から自動で判断します。合わないときは末尾に 1（薄い）〜5（とても暖かい）を付けてください。例：「黒パーカー 3」</p>
   <label class="f">トップス<textarea id="w-top"></textarea></label>
   <label class="f">ボトムス<textarea id="w-bottom"></textarea></label>
   <label class="f">アウター<textarea id="w-outer"></textarea></label>
 </div></details>
-<details id="s-song"><summary>今日の1曲のプレイリスト</summary><div class="pane">
-  <p class="hint">1行に1曲。「曲名 - アーティスト」と書くか、Spotify の曲のリンク（共有→リンクをコピー）を貼ってください。両方を1行に書くと、曲名を表示してアプリで開きます。例：「アイドル - YOASOBI https://open.spotify.com/track/…」</p>
+<details id="s-song"><summary>今日の1曲</summary><div class="pane">
+  <p class="hint">1行に1曲。「曲名 - アーティスト」と書くか、Spotify の曲のリンク（共有→リンクをコピー）を貼ってください。両方を1行に書くと、曲名を表示してアプリで開きます。末尾に長さ（例：4:05）があると、通学時間に合わせて続きの曲も選びます。例：「アイドル - YOASOBI https://open.spotify.com/track/… 3:33」</p>
   <label class="f">曲のリスト<textarea id="songs" style="min-height:8em"></textarea></label>
   <label class="f">プレイリストのリンク（任意）<input type="text" id="playlist" placeholder="https://open.spotify.com/playlist/…"></label>
 </div></details>
@@ -279,9 +329,12 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <label class="f">地域<select id="jmaoff"></select></label>
   <label class="f">地点<select id="jmapt"></select></label>
 </div></details>
+<p class="sh">そのほか</p>
+<details id="s-log"><summary>最近の記録</summary><div class="pane" id="logbox"></div></details>
 <details id="s-widget"><summary>ウィジェット・バックアップ</summary><div class="pane">
-  <p class="hint">iPhone のホーム画面・ロック画面のウィジェットは、無料アプリ「Scriptable」と同じフォルダの widget.js を使います。「ウィジェット用スクリプトをコピー」を押すと、今の設定が入ったスクリプトがコピーされます。Scriptable で新しいスクリプトを作って貼り付け、ウィジェットにそのスクリプトを選んでください。設定を変えたら、コピーし直して貼り替えます。「設定だけコピー」はバックアップ用です。</p>
-  <div class="row"><button class="act" id="copyw">ウィジェット用スクリプトをコピー</button><button class="act sub" id="copycfg">設定だけコピー</button><span class="hint" id="copymsg" role="status"></span></div>
+  <p class="hint">iPhone のウィジェットは無料アプリ「Scriptable」で動きます。はじめは「ウィジェット用スクリプトをコピー」を押し、Scriptable で「のりば」という名前のスクリプトを作って貼り付けます。2回目からは「ウィジェットに送る」を押すだけで、設定が Scriptable に渡ります（貼り直し不要）。ウィジェットは出発の10分前・5分前に通知し、JR の遅れも直接確認します。</p>
+  <div class="row"><button class="act" id="sendw">ウィジェットに送る</button><button class="act sub" id="copyw">ウィジェット用スクリプトをコピー</button><button class="act sub" id="copycfg">設定だけコピー</button></div>
+  <p class="hint" id="copymsg" role="status"></p>
   <p class="hint" id="syncmsg"></p>
   <textarea id="cfgtext" placeholder="ここに設定を貼り付けると読み込めます" aria-label="設定の貼り付け"></textarea>
   <div class="row"><button class="act sub" id="loadcfg">貼り付けた設定を読み込む</button><button class="act danger" id="reset">例のデータに戻す</button></div>
@@ -374,6 +427,7 @@ function sample(){const A=DIST?'学校':'大学',B=DIST?'おでかけ':'梅田';
   wear:{top:'白Tシャツ\n黒ロンT\nストライプシャツ\nグレーパーカー\nニット',bottom:'デニム\n黒スラックス\nチノパン',outer:'デニムジャケット\nパーカー\nウールコート\nダウン'},
   songs:'夜に駆ける - YOASOBI\nマリーゴールド - あいみょん\nPretender - Official髭男dism\n怪獣の花唄 - Vaundy\nアイドル - YOASOBI\n水平線 - back number\nKICK BACK - 米津玄師',
   playlist:'',
+  cal:'',items:'毎日: 学生証、PC\n金: 英語のテキスト',
   place:{name:'大阪市',lat:34.6937,lon:135.5023},
   jma:{office:'270000',point:'62078'}
 }}
@@ -390,6 +444,11 @@ function firstDeps(route,now){
   [svc,addDays(svc,1)].forEach(day=>legTimes(route.legs[0],day).forEach(m=>out.push({dep:addMin(day,m),day})));
   return out;
 }
+// 列車ごとの所要時間（なければ区間の標準値）
+function rideOf(L,dep){const sd=serviceDate(dep),m=Math.round((dep-sd)/60000),k=dayType(sd)==='weekday'?'wd':'we';
+  const R=L.rides&&(L.rides[k]||L.rides.wd);const v=R&&R[m];return v!=null?+v:(+L.ride||0)}
+let WALKADD=0; // 雨の日に徒歩へ足す分数
+const homeWalk=r=>(+r.home||0)+WALKADD,lastWalk=r=>(+r.last||0)+WALKADD;
 // dep1 から乗り継ぎを計算
 function chain(route,dep1,day){
   const steps=[];let t=dep1;
@@ -400,9 +459,9 @@ function chain(route,dep1,day){
       const c=legTimes(L,day).map(m=>addMin(day,m)).concat(legTimes(L,addDays(day,1)).map(m=>addMin(addDays(day,1),m))).find(d=>d>=ready);
       if(!c)return null;dep=c;steps.push({kind:'xfer',walk:+route.legs[i-1].xfer||0,wait:Math.round((dep-ready)/60000),from:t,at:L.from});
     }
-    const arr=addMin(dep,+L.ride||0);steps.push({kind:'ride',leg:L,dep,arr});t=arr;
+    const arr=addMin(dep,rideOf(L,dep));steps.push({kind:'ride',leg:L,dep,arr});t=arr;
   }
-  const leave=addMin(dep1,-(+route.home||0)),arrive=addMin(t,+route.last||0);
+  const leave=addMin(dep1,-homeWalk(route)),arrive=addMin(t,lastWalk(route));
   return {leave,arrive,dep1,steps};
 }
 function target(route,now){
@@ -412,34 +471,90 @@ function target(route,now){
 }
 function plan(route,now){
   if(!route||!route.legs.length)return null;
-  const cands=firstDeps(route,now).filter(c=>addMin(c.dep,-(+route.home||0))>=new Date(now-10000));
+  // 帰りは、その日の最後の授業が終わってから出る
+  let from=new Date(now-10000);if(route.kind==='back'){const cs=classesToday(now);if(cs.length){const e=cs[cs.length-1].end;if(e>from)from=e}}
+  const cands=firstDeps(route,now).filter(c=>addMin(c.dep,-homeWalk(route))>=from);
   const tg=target(route,now);
   const plans=[];for(const c of cands.slice(0,80)){const p=chain(route,c.dep,c.day);if(p)plans.push(p)}
   if(!plans.length)return {none:true,tg};
   const earliest=plans[0];
   if(!tg)return {s:'info',p:earliest,tg,plans};
-  const dl=addMin(tg.time,-(+route.buffer||0));
+  const extra=delayedLines(route).length?10:0;
+  const dl=addMin(tg.time,-((+route.buffer||0)+extra));
   const ok=plans.filter(p=>p.arrive<=dl);
   if(ok.length){
     const p=ok[ok.length-1],m=(p.leave-now)/60000;
-    return {s:m>=10?'go':m>=3?'soon':'now',p,tg,plans,dl};
+    return {s:m>=10?'go':m>=3?'soon':'now',p,tg,plans,dl,extra};
   }
   const late=Math.ceil((earliest.arrive-tg.time)/60000);
-  return {s:late<=0?'now':'late',p:earliest,tg,plans,dl,late,tight:late<=0};
+  return {s:late<=0?'now':'late',p:earliest,tg,plans,dl,late,tight:late<=0,extra};
 }
 
+/* ---------- 学年暦（日付ごとの例外） ----------
+   「12/24-1/7 休み」「11/23 月曜授業」「11/10 2限休講」「1/20 授業なし」の形を読む */
+function parseCal(text){
+  const out={},now=new Date();
+  String(text||'').replace(/[０-９／]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).split(/\n/).forEach(l=>{
+    const m=l.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\s*[-〜~～]\s*(\d{1,2})\/(\d{1,2}))?\s*(.*)$/);if(!m)return;
+    const yOf=mo=>{let y=now.getFullYear();if(mo<now.getMonth()+1-6)y++;else if(mo>now.getMonth()+1+6)y--;return y};
+    let a=new Date(yOf(+m[1]),+m[1]-1,+m[2]),b=m[3]?new Date(yOf(+m[3]),+m[3]-1,+m[4]):a;if(b<a)b=new Date(b.getFullYear()+1,b.getMonth(),b.getDate());
+    const rest=m[5]||'',wm=rest.match(/([日月火水木金土])曜/),cm=[...rest.matchAll(/(\d)限/g)].map(x=>+x[1]);
+    const e={off:/休み|休暇|授業なし|休校|試験なし/.test(rest)&&!/休講/.test(rest),wd:wm?WD.indexOf(wm[1]):null,cancel:/休講/.test(rest)?cm:[],note:rest};
+    for(let d=new Date(a);d<=b&&out.__n!==999;d=addDays(d,1))out[ymd(d)]=e;
+  });
+  return out;
+}
+let calMemo={t:null,v:{}};
+const calFor=d=>{if(calMemo.t!==S.cal)calMemo={t:S.cal,v:parseCal(S.cal)};return calMemo.v[ymd(d)]||null};
 /* ---------- 時間割 ---------- */
 function classesToday(now){
-  const svc=serviceDate(now),dt=dayType(svc);
-  if(dt==='holiday')return [];
-  const ps=parsePeriods(S.periods),list=(S.classes[svc.getDay()]||[]);
-  return ps.map((p,i)=>({p:i+1,name:list[i]||'',start:addMin(svc,p.s),end:addMin(svc,p.e)})).filter(c=>c.name);
+  const svc=serviceDate(now),dt=dayType(svc),c=calFor(svc);
+  if(c&&c.off)return [];
+  if(dt==='holiday'&&!(c&&c.wd!=null))return [];
+  const wd=c&&c.wd!=null?c.wd:svc.getDay();
+  const ps=parsePeriods(S.periods),list=(S.classes[wd]||[]);
+  return ps.map((p,i)=>({p:i+1,name:list[i]||'',start:addMin(svc,p.s),end:addMin(svc,p.e)})).filter(c2=>c2.name&&!(c&&c.cancel.includes(c2.p)));
+}
+
+/* ---------- 遅延と警報 ---------- */
+let TRAFFIC=null,WARN=null;
+const LINEKEY=[[/おおさか東/,'osakahigashi'],[/JR京都線/,'kyoto'],[/学研都市/,'gakkentoshi'],[/東西線/,'tozai'],[/環状/,'osakaloop'],[/JR神戸線/,'kobesanyo']];
+const LINENAME={osakahigashi:'おおさか東線',kyoto:'JR京都線',gakkentoshi:'学研都市線',tozai:'JR東西線',osakaloop:'大阪環状線',kobesanyo:'JR神戸線'};
+function trafficFresh(){return TRAFFIC&&TRAFFIC.at&&Date.now()-new Date(TRAFFIC.at).getTime()<90*60000?TRAFFIC:null}
+function delayedLines(route){const T=trafficFresh();if(!T||!route)return [];const ks=new Set();
+  route.legs.forEach(L=>LINEKEY.forEach(([re,k])=>{if(re.test(L.line||'')&&T.lines&&T.lines[k])ks.add(k)}));return [...ks]}
+const WARNNAME={'02':'暴風雪警報','03':'大雨警報','04':'洪水警報','05':'暴風警報','06':'大雪警報','07':'波浪警報','08':'高潮警報','10':'大雨注意報','12':'大雪注意報','13':'風雪注意報','14':'雷注意報','15':'強風注意報','16':'波浪注意報','18':'洪水注意報','19':'高潮注意報','20':'濃霧注意報','32':'暴風雪特別警報','33':'大雨特別警報','35':'暴風特別警報','36':'大雪特別警報','37':'波浪特別警報','38':'高潮特別警報'};
+const WARN_SHOW=new Set(['02','03','04','05','06','08','10','12','14','15','18','32','33','35','36','38']);
+function warnFromJma(j){const want={'2710000':'大阪市','2721100':'茨木市'},out={};
+  ((j.areaTypes||[])[1]||{areas:[]}).areas.forEach(a=>{if(!want[a.code])return;const ns=(a.warnings||[]).filter(w=>w.status!=='解除'&&w.status!=='発表警報・注意報はなし'&&WARN_SHOW.has(w.code)).map(w=>WARNNAME[w.code]);if(ns.length)out[want[a.code]]=ns});
+  return {at:j.reportDatetime,areas:out}}
+async function loadWarnDirect(){try{const r=await fetch('https://www.jma.go.jp/bosai/warning/data/warning/270000.json');if(r.ok){WARN=warnFromJma(await r.json());drawAlerts()}}catch(e){}}
+function drawAlerts(){
+  const el=$('alerts'),chips=[];
+  if(WARN&&WARN.areas)Object.entries(WARN.areas).forEach(([a,ns])=>chips.push({lv:ns.some(n=>/警報/.test(n)&&!/注意報/.test(n))?'bad':'warn',t:`${a}：${ns.join('・')}`}));
+  const T=trafficFresh(),base=S.routes[destI];
+  if(T&&T.lines){const used=new Set();S.routes.filter(r=>base&&r.name===base.name).forEach(r=>delayedLines(r).forEach(k=>used.add(k)));
+    const r=curRoute,mine=r?delayedLines(r):[];
+    used.forEach(k=>{const v=T.lines[k]||{};
+      const how=mine.includes(k)?(cur&&cur.tg?'。10分早めに着く計画にしています':''):'。この路線を使わない行き方にしています';
+      chips.push({lv:'bad',t:`${LINENAME[k]||k}：${v.text||v.status||'遅れ・運転見合わせの情報'}${v.cause?'（'+v.cause+'）':''}${how}`})})}
+  if(WALKADD)chips.push({lv:'info',t:`雨の予報のため、徒歩を${WALKADD}分長めに計算しています`});
+  el.hidden=!chips.length;el.innerHTML=chips.map(c=>`<div class="al ${c.lv}">${esc(c.t)}</div>`).join('');
 }
 
 /* ---------- 描画 ---------- */
 let lastKey='',cur=null;
+let destManual=false;
+function autoDest(){
+  const now=new Date(),cs=classesToday(now),bi=S.routes.findIndex(r=>r.kind==='back'&&r.legs.length);
+  if(cs.length&&bi>=0){const last=cs[cs.length-1];if(now>=addMin(last.end,-20)&&now<=addMin(last.end,300))return bi}
+  const ci=S.routes.findIndex(r=>r.target==='class'&&r.legs.length&&r.kind!=='back');
+  if(ci>=0&&cs.some(c=>c.start>now))return ci;
+  const o=S.routes.findIndex(r=>r.target!=='class'&&r.legs.length&&r.kind!=='back');return o>=0?o:(ci>=0?ci:0);
+}
 function drawDest(){
-  if(destI===null||destI>=S.routes.length){
+  if(destI===null||destI>=S.routes.length)destI=autoDest();
+  if(false){
     const now=new Date(),ci=S.routes.findIndex(r=>r.target==='class');
     if(ci>=0&&classesToday(now).some(c=>c.start>now))destI=ci;
     else{const o=S.routes.findIndex(r=>r.target!=='class'&&r.legs.length);destI=o>=0?o:(ci>=0?ci:0)}
@@ -459,18 +574,20 @@ const viaOf=r=>r.via||r.legs.map(l=>l.line||l.from).join('→');
 function bestPlan(name,now){
   const alts=S.routes.map((r,i)=>({r,i})).filter(x=>x.r.name===name&&x.r.legs.length).map(x=>({...x,P:plan(x.r,now)})).filter(x=>x.P&&x.P.p);
   if(!alts.length)return null;
-  const ok=x=>x.P.s!=='late'&&x.P.tg;
+  const ok=x=>!!(x.P.tg&&x.P.s!=='late');
   alts.sort((a,b)=>{
-    if(a.P.tg||b.P.tg){if(ok(a)!==ok(b))return ok(a)?-1:1;if(ok(a))return b.P.p.leave-a.P.p.leave;return a.P.p.arrive-b.P.p.arrive}
-    return (a.P.p.arrive-b.P.p.arrive)||(b.P.p.leave-a.P.p.leave)});
+    const pen=x=>delayedLines(x.r).length?15*60000:0; // 遅れている路線は15分不利として比べる
+    if(a.P.tg||b.P.tg){if(ok(a)!==ok(b))return ok(a)?-1:1;if(ok(a))return (b.P.p.leave-pen(b))-(a.P.p.leave-pen(a));return (a.P.p.arrive+pen(a))-(b.P.p.arrive+pen(b))}
+    return (a.P.p.arrive+pen(a)-b.P.p.arrive-pen(b))||(b.P.p.leave-a.P.p.leave)});
   return {best:alts[0],alts};
 }
-let curAlts=[];
+let curAlts=[],curRoute=null;
 function render(){
   const now=new Date(),base=S.routes[destI];
   $('example').hidden=!S.example;$('exnote').hidden=!S.example;
-  const B=base?bestPlan(base.name,now):null,route=B?B.best.r:base,P=B?B.best.P:plan(base,now);cur=P;curAlts=B?B.alts:[];
-  const key=JSON.stringify([destI,B&&B.best.i,P&&P.s,P&&P.p&&+P.p.leave,P&&P.tg&&+P.tg.time,S.example,curAlts.map(a=>+a.P.p.arrive)]);
+  const d0=daySpan();WALKADD=d0&&d0.rain>=50?2:0;
+  const B=base?bestPlan(base.name,now):null,route=B?B.best.r:base,P=B?B.best.P:plan(base,now);cur=P;curAlts=B?B.alts:[];curRoute=route;
+  const key=JSON.stringify([destI,B&&B.best.i,P&&P.s,P&&P.p&&+P.p.leave,P&&P.tg&&+P.tg.time,S.example,curAlts.map(a=>+a.P.p.arrive),ld('trip',null),WALKADD]);
   if(key!==lastKey){lastKey=key;drawHero(route,P,now);drawSteps(route,P);drawBoard(route,now)}
   tickCd();
 }
@@ -478,14 +595,15 @@ function drawHero(route,P,now){
   const h=$('hero');
   if(!route||!route.legs.length){h.dataset.s='info';h.innerHTML='<p class="msg">設定の「経路と時刻表」で経路を登録してください。</p>';return}
   if(!P||P.none){h.dataset.s='info';h.innerHTML=`<p class="msg">今日これから乗れる電車が見つかりませんでした。時刻表を確認してください。</p>`;return}
-  const L={go:'余裕あり',soon:'そろそろ準備',now:'今すぐ出発',late:'遅刻の危険',info:'次の電車'}[P.s];
+  const back=route.kind==='back',org=route.origin||'家';
+  const L={go:'余裕あり',soon:'そろそろ準備',now:'今すぐ出発',late:'遅刻の危険',info:back?'帰り':'次の電車'}[P.s];
   const p=P.p;
   const multi=curAlts.length>1;
-  const goal=(P.tg?`${esc(P.tg.label)}（${hm(P.tg.time)}）に向けて`:`${esc(route.name)}へ`)+(multi?`・${esc(viaOf(route))}が最速`:'');
-  let msg=`${hm(p.leave)} に家を出る → ${hm(p.arrive)} ${esc(route.name)}着`;
+  const goal=(P.tg?`${hm(P.tg.time)} ${esc(P.tg.label.replace(/（[^）]*）$/,''))}`:back?'家へ':`${esc(route.name)}へ`)+'';
+  let msg=back?`${hm(p.leave)} に${esc(org)}を出る → ${hm(p.arrive)} 家に着く`:`${hm(p.leave)} に${esc(org)}を出る → ${hm(p.arrive)} ${esc(route.name)}着`;
   if(P.s==='late')msg=`いちばん早くても ${hm(p.arrive)} 着、${P.late}分の遅刻です`;
   else if(P.tight)msg=`${hm(p.arrive)} 着。始まりには間に合いますが余裕はありません`;
-  else if(P.tg)msg+=`（開始の${Math.round((P.tg.time-p.arrive)/60000)}分前）`;
+  else if(P.tg)msg+=`（${Math.round((P.tg.time-p.arrive)/60000)}分前着）`;
   // タイムライン
   const t0=Math.min(+now,+p.leave),t1=Math.max(+p.arrive,P.tg?+P.tg.time:+p.arrive);const span=Math.max(1,t1-t0);
   const x=t=>((+t-t0)/span*100).toFixed(2)+'%',w=(a,b)=>((+b-+a)/span*100).toFixed(2)+'%';
@@ -497,21 +615,49 @@ function drawHero(route,P,now){
   if(P.tg)bars+=`<div class="mk" style="left:calc(${x(P.tg.time)} - 2px)"><span style="left:auto;right:4px">開始</span></div>`;
   h.dataset.s=P.s;
   h.innerHTML=`<div class="top"><span class="lv">${L}</span><span class="goal">${goal}</span></div>
-    <div class="lab">家を出るまで</div><div class="cd" id="cd"></div>
+    <div class="labrow"><span class="lab">${esc(org)}を出るまで</span>${tripButton(route,P)}</div><div class="cd" id="cd"></div>
     <div class="msg">${msg}</div>
     <div class="tl" aria-hidden="true">${bars}</div>
 `;
 }
+/* 実際にかかった時間で、徒歩の見積もりを少しずつ直す。記録は振り返り（Obsidian の週の記録）にも使う */
+function tripButton(route,P){
+  const t=ld('trip',null),today=ymd(serviceDate(new Date())),org=route.origin||'家';
+  if(t&&t.date===today&&t.stage==='done')return `<div class="trip"><span>${esc(t.msg||'記録しました')}</span></div>`;
+  if(t&&t.date===today&&t.stage==='left')return `<div class="trip"><button class="tb" data-trip="station">駅に着いた</button><span>出発 ${hm(new Date(t.leaveAt))}</span></div>`;
+  if(t&&t.date===today&&t.stage==='station')return `<div class="trip"><button class="tb" data-trip="arrive">${route.kind==='back'?'家に着いた':'着いた'}</button><span>駅 ${hm(new Date(t.stationAt))}</span></div>`;
+  if(!P||!P.p||(P.p.leave-new Date())>60*60000)return ''; // 出発の1時間前から出す
+  return `<div class="trip"><button class="tb" data-trip="leave">${esc(org)}を出た</button></div>`;
+}
+function onTrip(stage){
+  const now=new Date(),today=ymd(serviceDate(now));let t=ld('trip',null);const r=curRoute;if(!r)return;
+  const ema=(old,v)=>Math.max(0,Math.round(old*0.7+v*0.3));
+  if(stage==='leave'){t={date:today,ri:S.routes.indexOf(r),name:r.name,via:viaOf(r),plannedLeave:cur&&cur.p?+cur.p.leave:null,target:cur&&cur.tg?+cur.tg.time:null,leaveAt:+now,stage:'left'}}
+  else if(stage==='station'&&t){const w=(now-t.leaveAt)/60000,R=S.routes[t.ri];t.stationAt=+now;t.stage='station';
+    if(R&&w>=1&&w<=45){const o=+R.home||0;R.home=ema(o,w);t.homeWalk=Math.round(w);t.homeMsg=`駅まで${Math.round(w)}分（見積もり${o}→${R.home}分）`;S.example=false;save()}}
+  else if(stage==='arrive'&&t){const R=S.routes[t.ri];let msg='記録しました';
+    if(R&&t.stationAt){const sd=serviceDate(new Date(t.stationAt));const dep=legTimes(R.legs[0],sd).map(m=>addMin(sd,m)).find(d=>d>=new Date(t.stationAt));
+      const c=dep?chain(R,dep,sd):null;if(c){const trainArr=addMin(c.arrive,-lastWalk(R)),w=(now-trainArr)/60000;
+        if(w>=1&&w<=45){const o=+R.last||0;R.last=ema(o,w);t.lastWalk=Math.round(w);msg=`駅から${Math.round(w)}分（見積もり${o}→${R.last}分）`}}}
+    t.arriveAt=+now;t.late=t.target?now>t.target:null;t.stage='done';t.msg=[t.homeMsg,msg].filter(Boolean).join('・');
+    S.log=(S.log||[]).concat([{date:t.date,name:t.name,via:t.via,plannedLeave:t.plannedLeave,leaveAt:t.leaveAt,stationAt:t.stationAt,arriveAt:t.arriveAt,target:t.target,late:t.late,homeWalk:t.homeWalk,lastWalk:t.lastWalk}]).slice(-120);
+    S.example=false;save();drawLog()}
+  sv('trip',t);lastKey='';render();
+}
+$('hero').addEventListener('click',e=>{const b=e.target.closest('[data-trip]');if(b)onTrip(b.dataset.trip)});
+function drawLog(){const el=$('logbox');if(!el)return;const L=(S.log||[]).slice(-10).reverse();
+  el.innerHTML=L.length?`<ul class="loglist">${L.map(x=>`<li><span>${x.date.slice(5).replace('-','/')}</span><span>${esc(x.name)}${x.via?'・'+esc(x.via):''}</span><span>${hm(new Date(x.leaveAt))}出${x.arriveAt?'→'+hm(new Date(x.arriveAt))+'着':''}</span><span class="${x.late?'lt':''}">${x.late==null?'':x.late?'遅刻':'間に合った'}</span></li>`).join('')}</ul>`:'<p class="hint">朝のページの「家を出た」を押すと、ここに記録が残ります。毎週日曜の夜に、1週間分を Obsidian にまとめます。</p>'}
 function drawSteps(route,P){
   const el=$('steps');if(!P||!P.p){el.innerHTML='';el.hidden=true;return}el.hidden=false;
   const p=P.p,it=[],ar='<span class="ar">→</span>';
-  it.push(`<span class="st"><b>${hm(p.leave)}</b>家</span>`);
+  if(curAlts.length>1)it.push(`<span class="via">${esc(viaOf(route))}</span>`);
+  it.push(`<span class="st"><b>${hm(p.leave)}</b>${esc(route.origin||'家')}</span>`);
   let first=true;
   p.steps.forEach(s=>{
     if(s.kind==='ride'){it.push(ar+(first?`<span class="st"><b>${hm(s.dep)}</b>${esc(s.leg.from)}</span>`:`<span class="st"><b>${hm(s.dep)}</b>発</span>`),ar+`<span class="st"><b>${hm(s.arr)}</b>${esc(s.leg.to)}</span>`);first=false}
     else it.push(`<span class="xf">（乗換${s.walk}分・待ち${s.wait}分）</span>`);
   });
-  it.push(ar+`<span class="st"><b>${hm(p.arrive)}</b>${esc(route.name)}</span>`);
+  it.push(ar+`<span class="st"><b>${hm(p.arrive)}</b>${route.kind==='back'?'家':esc(route.name)}</span>`);
   const others=curAlts.filter(a=>a.r!==route);
   if(others.length)it.push(`<span class="alts">ほかの行き方：${others.map(a=>`${esc(viaOf(a.r))} ${hm(a.P.p.leave)}出→${hm(a.P.p.arrive)}着`).join('、')}</span>`);
   el.innerHTML=it.join('');
@@ -577,7 +723,7 @@ function drawTrend(){
     g+=`<text class="v" x="${X(p.h)+dx}" y="${Y(p.temp)+(p===mx?-9:16)}" text-anchor="${edge}">${p.temp}℃</text>`});
   g+=`<line class="hv" id="hvl" x1="0" x2="0" y1="${T}" y2="${H0-B}" visibility="hidden"/>`;
   const summ=sc?`出発 ${hm(sc.leave)} 約${Math.round(tempAt(sc.leave,'home'))}℃ → ${sc.cs.map(c=>`${c.p}限 ${Math.round(tempAt(c.start,'campus'))}℃`).join(' → ')} → 帰宅 ${hm(sc.home)} 約${Math.round(tempAt(sc.home,'home'))}℃`:'今日は授業がありません。';
-  el.innerHTML=`<h2>気温の推移・${G.Hc&&sc?'大阪市・茨木市':esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?'線は、その時間にいる場所の予想気温です（灰色の帯＝大学にいる間は茨木市、それ以外は大阪市）。':'灰色の帯は大学にいる時間。'}グラフを押すと、その時刻の気温が出ます。</p>`:''}`;
+  el.innerHTML=`<h2>気温の推移・${G.Hc&&sc?'大阪市・茨木市':esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?'灰色＝大学（茨木市）にいる時間。それ以外は大阪市の気温。':'灰色＝大学にいる時間。'}押すとその時刻の気温が出ます。</p>`:''}`;
   const svg=$('tsvg'),rd=$('tread'),ln=$('hvl');
   const mv=e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W0;if(x<L||x>W0-R)return;
     const h=h0+(x-L)/(W0-L-R)*(h1-h0),d=addMin(svc,h*60);ln.setAttribute('x1',x);ln.setAttribute('x2',x);ln.setAttribute('visibility','visible');
@@ -586,31 +732,55 @@ function drawTrend(){
   svg.addEventListener('pointerleave',()=>{ln.setAttribute('visibility','hidden');rd.textContent=summ});
 }
 
+/* ---------- 持ち物（曜日ごと＋毎日） ----------
+   「毎日: 学生証、PC」「月: 線形代数の教科書」の形 */
+function itemsToday(){
+  const svc=serviceDate(new Date()),c=calFor(svc),wd=c&&c.wd!=null?c.wd:svc.getDay(),cs=classesToday(new Date()),out=[];
+  String(S.items||'').split(/\n/).forEach(l=>{const m=l.match(/^\s*(毎日|[日月火水木金土])\s*[:：]\s*(.+)$/);if(!m)return;
+    if(m[1]==='毎日'?cs.length:WD.indexOf(m[1])===wd&&cs.length)m[2].split(/[、,，]/).map(x=>x.trim()).filter(Boolean).forEach(x=>{if(!out.includes(x))out.push(x)})});
+  return out;
+}
+function drawItems(){
+  const el=$('items'),its=itemsToday(),k='chk:'+ymd(serviceDate(new Date())),ck=ld(k,[]);
+  if(!its.length){el.hidden=true;return}el.hidden=false;
+  const left=its.filter(x=>!ck.includes(x)).length;
+  el.innerHTML=`<h2>今日の持ち物${left?`・あと${left}つ`:'・そろいました'}</h2><ul class="chk">${its.map((x,i)=>`<li><label><input type="checkbox" id="it${i}" data-it="${esc(x)}" ${ck.includes(x)?'checked':''}> ${esc(x)}</label></li>`).join('')}</ul>`;
+}
+
 /* ---------- 朝ページの要約（体感・服・次の授業） ---------- */
 let WEAR_TXT='';
 function drawMini(){
   const d=daySpan(),now=new Date(),nx=classesToday(now).find(c=>c.end>now),parts=[];
   parts.push(d&&d.jma?`<span>気温</span><b>${d.dayMin??d.min}〜${d.dayMax??d.max}℃</b>${d.rain>=30?' ☂':''}`:d?`<span>体感</span><b>${Math.round(W&&W.current?W.current.apparent_temperature:d.avg)}℃</b>${d.rain>=30?' ☂':''}`:'<span>体感</span>未選択');
   if(WEAR_TXT)parts.push(`<span>服</span>${esc(WEAR_TXT)}`);
-  parts.push(nx?`<span>次</span>${nx.p}限 ${esc(nx.name)}`:'<span>授業</span>なし');
+  // 次の授業は主役カードに出ているので、ここには出さない（授業のない日だけ「授業なし」）
+  if(!classesToday(now).length)parts.push('<span>授業</span>なし');
+  const its=itemsToday();if(its.length){const ck=ld('chk:'+ymd(serviceDate(now)),[]),left=its.filter(x=>!ck.includes(x)).length;if(left)parts.push(`<span>持ち物</span>あと${left}`)}
   $('mini').innerHTML=parts.map(x=>`<div class="${x.includes('>服<')?'w':''}">${x}</div>`).join('')+'<div class="more">今日 ›</div>';
 }
 
 /* ---------- 今日の1曲 ---------- */
+function songOf(line){
+  const um=line.match(/https?:\/\/\S+/),url=um?um[0]:'';let txt=line.replace(url,'').trim();
+  const dm=txt.match(/\s(\d{1,2}):(\d{2})$/),sec=dm?+dm[1]*60+ +dm[2]:null;if(dm)txt=txt.slice(0,dm.index).trim();
+  const tr=url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist)\/([A-Za-z0-9]+)/);
+  const q=txt.replace(/\s+[-–—]\s+(?!.*\s[-–—]\s)/,' ');
+  const app=tr?`spotify:${tr[1]}:${tr[2]}`:url?url:'spotify:search:'+encodeURIComponent(q);
+  const web=tr?`https://open.spotify.com/${tr[1]}/${tr[2]}`:url?url:'https://open.spotify.com/search/'+encodeURIComponent(q);
+  const sp=txt.match(/^(.*)\s+[-–—]\s+(.+)$/),[title,artist]=txt?(sp?[sp[1],sp[2]]:[txt,'']):['今日の1曲','Spotify の曲'];
+  return {title,artist,app,web,sec,tr:!!tr};
+}
 function drawSong(){
   const list=String(S.songs||'').split(/\n/).map(s=>s.trim()).filter(Boolean),el=$('song');
-  if(!list.length){el.innerHTML='<h2>今日の1曲</h2><p class="sm">設定の「今日の1曲のプレイリスト」に曲を入れると、毎日1曲選びます。</p>';return}
-  const s=list[hash(ymd(serviceDate(new Date())))%list.length];
-  const um=s.match(/https?:\/\/\S+/),url=um?um[0]:'',txt=s.replace(url,'').trim();
-  const isUrl=!!url,tr=url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist)\/([A-Za-z0-9]+)/);
-  const q=txt.replace(/\s+[-–—]\s+(?!.*\s[-–—]\s)/,' ');
-  // アプリ：曲のリンクなら spotify:track:ID、曲名なら spotify:search:曲名。ブラウザ：open.spotify.com（スマホではアプリが入っていればアプリに切り替わる）
-  const app=tr?`spotify:${tr[1]}:${tr[2]}`:isUrl&&!txt?url:isUrl?url:'spotify:search:'+encodeURIComponent(q);
-  const web=tr?`https://open.spotify.com/${tr[1]}/${tr[2]}`:isUrl?url:'https://open.spotify.com/search/'+encodeURIComponent(q);
-  const sp=txt.match(/^(.*)\s+[-–—]\s+(.+)$/),[title,artist]=txt?(sp?[sp[1],sp[2]]:[txt,'']):['今日の1曲','Spotify の曲'];
-  el.innerHTML=`<h2>今日の1曲</h2><div class="song"><span class="disc" aria-hidden="true"></span><span><b>${esc(title)}</b><span class="sm">${esc(artist||'')}</span></span></div>
-    <div class="row" style="font-size:13px"><a class="act" style="padding:5px 12px" href="${esc(app)}">Spotify アプリで開く</a><a class="act sub" style="padding:5px 12px" href="${esc(web)}" target="_blank" rel="noopener">${tr?'リンクで開く':'ブラウザで開く'}</a></div>
-    <p class="hint">${tr?'リンクで開く場合も、スマホに Spotify アプリがあればアプリで再生されます。':'アプリが開かないときは、曲のリストに Spotify の曲のリンクを入れると確実にアプリで開けます。'}</p>`
+  if(!list.length){el.innerHTML='<h2>今日の1曲</h2><p class="sm">設定の「今日の1曲」に曲を入れると、毎日1曲選びます。</p>';return}
+  // 日付で決まる順番に並べ、1曲目が今日の1曲。通学時間ぶん続けて選ぶ
+  const seed=hash(ymd(serviceDate(new Date()))),order=list.map((x,i)=>[hash(seed+':'+i),x]).sort((a,b)=>a[0]-b[0]).map(x=>songOf(x[1]));
+  const P=cur&&cur.p,trip=P?Math.round((P.arrive-P.leave)/60000):0,more=[];let sum=order[0].sec||0;
+  if(trip>0&&order[0].sec)for(let i=1;i<order.length&&sum<trip*60;i++){if(!order[i].sec)continue;more.push(order[i]);sum+=order[i].sec}
+  const s=order[0];
+  el.innerHTML=`<h2>今日の1曲</h2><div class="song"><span class="disc" aria-hidden="true"></span><span><b>${esc(s.title)}</b><span class="sm">${esc(s.artist||'')}</span></span></div>
+    <div class="row" style="font-size:13px"><a class="act" style="padding:5px 12px" href="${esc(s.app)}">Spotify アプリで開く</a><a class="act sub" style="padding:5px 12px" href="${esc(s.web)}" target="_blank" rel="noopener">リンクで開く</a></div>`
+    +(more.length?`<details class="more"><summary>通学${trip}分に合わせた続きの${more.length}曲（合計${Math.round(sum/60)}分）</summary><ol class="songs">${more.map(m=>`<li><a href="${esc(m.app)}">${esc(m.title)}</a><span>${esc(m.artist)}</span></li>`).join('')}</ol></details>`:'')
     +(S.playlist?`<a class="sm" href="${esc(S.playlist)}" target="_blank" rel="noopener">プレイリストを開く</a>`:'');
 }
 
@@ -661,11 +831,11 @@ function tempAt(d,where){const G=getHourly();if(!G)return null;
 /* 今日の予定：家を出る→授業→帰宅。大学の経路と時間割から求める */
 let schMemo={k:'',v:null};
 function schedule(){
-  const now=new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length;if(schMemo.k===k)return schMemo.v;
+  const now=new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length+String(S.cal||'').length+WALKADD;if(schMemo.k===k)return schMemo.v;
   const v=schedule0(now);schMemo={k,v};return v}
 function schedule0(now){
   const cs=classesToday(now);if(!cs.length)return null;
-  const ri=S.routes.findIndex(r=>r.target==='class'&&r.legs.length);if(ri<0)return null;const r=S.routes[ri];
+  const ri=S.routes.findIndex(r=>r.target==='class'&&r.legs.length&&r.kind!=='back');if(ri<0)return null;const r=S.routes[ri];
   let trip=75,leave=null;
   // その日の最初の授業に間に合う計画を、始発から順に探す
   const first=cs[0],dl=addMin(first.start,-(+r.buffer||0)),svc=serviceDate(now);
@@ -709,8 +879,9 @@ function drawWeather(){
 
 /* ---------- 服の選択 ---------- */
 const KW={
-  top:[[/タンク|ノースリ/,1],[/T[シｼ]ャツ|Tシャツ|半袖|ポロ/i,1],[/ロンT|長袖|シャツ|ブラウス/,2],[/パーカー|スウェット|トレーナー|カーディガン/,3],[/ニット|セーター|タートル|フリース|裏起毛/,4]],
-  bottom:[[/短パン|ショート|ハーフ/,1],[/スカート|スラックス|チノ|ワイド/,2],[/デニム|ジーンズ|カーゴ/,3],[/コーデュロイ|裏起毛|ウール/,4]],
+  // 後に書いた条件が優先（例：ハーフデニムは「デニム」より「ハーフ」）
+  top:[[/ロンT|長袖|シャツ|ブラウス/,2],[/タンク|ノースリ/,1],[/T[シｼ]ャツ|Tシャツ|半袖|ポロ/i,1],[/パーカー|スウェット|トレーナー|カーディガン/,3],[/ニット|セーター|タートル|フリース|裏起毛/,4]],
+  bottom:[[/スカート|スラックス|チノ|ワイド|パンツ/,2],[/デニム|ジーンズ|カーゴ/,3],[/コーデュロイ|裏起毛|ウール/,4],[/短パン|ショート|ハーフ/,1]],
   outer:[[/カーディガン|シャツジャケ/,1],[/デニムジャケ|ジャケット|ブルゾン|パーカー/,2],[/マウンテン|トレンチ|ステンカラー|ボア/,3],[/コート|ピーコート/,4],[/ダウン|ベンチ/,5]]
 };
 function parseWear(text,kind){
@@ -719,10 +890,12 @@ function parseWear(text,kind){
     let w=kind==='outer'?3:2;for(const [re,v] of KW[kind])if(re.test(s))w=v;return{name:s,w};
   });
 }
+// 最近（2日以内）着た服は少し避ける。暖かさの差が同じくらいの別の服があれば、そちらを選ぶ
+function recentWorn(){const out=new Set(),today=serviceDate(new Date());for(let i=1;i<=2;i++)((S.worn||{})[ymd(addDays(today,-i))]||[]).forEach(n=>out.add(n));return out}
 function pick(items,want,seed){
-  if(!items.length)return null;
-  const best=Math.min(...items.map(i=>Math.abs(i.w-want)));
-  const c=items.filter(i=>Math.abs(i.w-want)===best);return c[seed%c.length];
+  if(!items.length)return null;const rec=recentWorn(),sc=i=>Math.abs(i.w-want)+(rec.has(i.name)?0.6:0);
+  const best=Math.min(...items.map(sc));
+  const c=items.filter(i=>sc(i)===best);return c[seed%c.length];
 }
 function drawWear(){
   const el=$('wear');
@@ -739,7 +912,9 @@ function drawWear(){
   WEAR_TXT=[top&&top.name,out&&out.name].filter(Boolean).join('＋')||feel;drawMini();
   const G2=getHourly(),two=G2&&G2.Hc;
   const why=d.sched?`<p class="sm">出発 ${hm(d.sched.leave)}${two?' 大阪市':''} 約${Math.round(d.tl)}℃・大学を出る ${hm(d.sched.out)}${two?' 茨木市':''} 約${Math.round(d.tb)}℃で選んでいます</p>`:'';
-  el.innerHTML=`<h2>今日の服</h2><p class="feelx">${feel}</p>${why}<div class="wear">${top?`<div><span>上</span>${esc(top.name)}</div>`:''}${bot?`<div><span>下</span>${esc(bot.name)}</div>`:''}${out?`<div><span>外</span>${esc(out.name)}</div>`:needOuter?'':'<div><span>外</span>なしでOK</div>'}</div>`
+  const today=ymd(serviceDate(new Date())),picked=[top&&top.name,out&&out.name].filter(Boolean),worn=(S.worn||{})[today];
+  const wbtn=picked.length?(worn?`<p class="sm wornok">今日はこれを着る</p>`:`<button class="act sub small" id="wearbtn">これを着る</button>`):'';
+  el.innerHTML=`<h2>今日の服</h2><p class="feelx">${feel}</p>${why}<div class="wear">${top?`<div><span>上</span>${esc(top.name)}</div>`:''}${bot?`<div><span>下</span>${esc(bot.name)}</div>`:''}${out?`<div><span>外</span>${esc(out.name)}</div>`:needOuter?'':'<div><span>外</span>なしでOK</div>'}</div>${wbtn}`
     +(top||bot?'':'<p class="sm">設定の「持っている服」を入れてください。</p>')+tags.join(' ');
 }
 
@@ -804,6 +979,10 @@ $('routeedit').addEventListener('click',e=>{
 $('classedit').addEventListener('input',()=>{const re=readClasses();changed();if(re)setTimeout(drawClassEdit,800)});
 $('classedit').addEventListener('click',e=>{const d=e.target.dataset.cd;if(!d)return;readClasses();classDay=+d;drawClassEdit()});
 ['w-top','w-bottom','w-outer'].forEach(id=>$(id).addEventListener('input',()=>{S.wear={top:$('w-top').value,bottom:$('w-bottom').value,outer:$('w-outer').value};changed()}));
+$('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(()=>{drawClasses();drawItems()},450)});
+$('itemsin').addEventListener('input',()=>{S.items=$('itemsin').value;changed();setTimeout(drawItems,450)});
+$('items').addEventListener('change',e=>{const x=e.target.dataset.it;if(x==null)return;const k='chk:'+ymd(serviceDate(new Date()));let ck=ld(k,[]);
+  ck=e.target.checked?[...new Set(ck.concat([x]))]:ck.filter(y=>y!==x);sv(k,ck);drawItems();drawMini()});
 $('songs').addEventListener('input',()=>{S.songs=$('songs').value;changed()});
 $('playlist').addEventListener('input',()=>{S.playlist=$('playlist').value.trim();changed()});
 $('placebtn').onclick=async()=>{
@@ -815,7 +994,7 @@ $('placebtn').onclick=async()=>{
   }catch(e){$('placeres').textContent='検索できませんでした。通信を確認してください。'}
 };
 const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name}
-function fillStatic(){$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
+function fillStatic(){$('cal').value=S.cal||'';$('itemsin').value=S.items||'';$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
 
 /* ウィジェット用の書き出し・読み込み */
 let WJS='';fetch('widget.js').then(r=>r.ok?r.text():'').then(t=>WJS=t).catch(()=>{});
@@ -823,12 +1002,16 @@ function copyText(t,okMsg){$('cfgtext').value=t;const fb=()=>{$('cfgtext').selec
   try{navigator.clipboard.writeText(t).then(()=>$('copymsg').textContent=okMsg,fb)}catch(e){fb()}}
 $('copyw').onclick=()=>{if(!WJS){$('copymsg').textContent='スクリプトを読み込めませんでした。ページを開き直してください';return}
   copyText(WJS.replace('const DATA = {};','const DATA = '+JSON.stringify(S)+';'),'コピーしました。Scriptable に貼り付けてください')};
+$('sendw').onclick=()=>{const t=JSON.stringify(S);copyText(t,'設定をコピーしました。Scriptable が開いたら「のりば」が自動で読み込みます');
+  setTimeout(()=>{location.href='scriptable:///run/'+encodeURIComponent('のりば')},400)};
 $('copycfg').onclick=()=>copyText(JSON.stringify(S),'コピーしました');
 $('loadcfg').onclick=()=>{try{const o=JSON.parse($('cfgtext').value);if(!o.routes)throw 0;S=Object.assign(sample(),o);save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();$('resetmsg').textContent='読み込みました'}catch(e){$('resetmsg').textContent='読み込めませんでした。「設定をコピー」で出した文字をそのまま貼ってください'}};
 let resetArm=false;
 $('reset').onclick=()=>{if(!resetArm){resetArm=true;$('reset').textContent='本当に戻す（入力が消えます）';setTimeout(()=>{resetArm=false;$('reset').textContent='例のデータに戻す'},4000);return}
   S=sample();save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();resetArm=false;$('reset').textContent='例のデータに戻す';$('resetmsg').textContent='例のデータに戻しました'};
 
+$('wear').addEventListener('click',e=>{if(e.target.id!=='wearbtn')return;const today=ymd(serviceDate(new Date())),picked=WEAR_TXT.split('＋').filter(Boolean);
+  S.worn=S.worn||{};S.worn[today]=picked;const lim=ymd(addDays(new Date(),-21));Object.keys(S.worn).forEach(k=>{if(k<lim)delete S.worn[k]});S.example=false;save();drawWear()});
 $('weather').addEventListener('click',e=>{const b=e.target.closest('[data-feel],[data-rain]');if(!b)return;
   const f=manualFeel()||{date:ymd(serviceDate(new Date())),t:null,rain:false};
   if(b.dataset.feel)f.t=+b.dataset.feel;else f.rain=!f.rain;sv('feel',f);drawWeather();drawWear()});
@@ -845,7 +1028,7 @@ $('mini').onclick=()=>go('today');
 $('exnote').onclick=()=>go('setup');
 addEventListener('hashchange',()=>go(location.hash.slice(1),false));
 $('jmaoff').addEventListener('change',onJma);$('jmapt').addEventListener('change',onJma);
-$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;sv('destI',destI);drawDest();render()};
+$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;destManual=true;sv('destI',destI);drawDest();render()};
 $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday','holiday'],f=ld('dayForce',null);
   try{localStorage.removeItem('dayForce')}catch(e){}const auto=dayType(svc);
   const curT=f&&f.date===ymd(svc)?f.type:auto,next=o[(o.indexOf(curT)+1)%3];
@@ -858,7 +1041,8 @@ $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday',
   const uid=await user.id();if(!uid)return;
   DOC=db.doc('data/users/'+uid+'/settings');
   if(DIST)db.doc('weather/all').get().then(w=>{if(w.exists){WALL=w.data();pickJma();drawJmaSel();drawWeather();drawWear();drawMini()}}).catch(()=>{});
-  else db.doc('weather/forecast').get().then(w=>{if(w.exists){WJ=w.data();drawWeather();drawWear();drawMini();drawClasses();drawTrend()}}).catch(()=>{});
+  else db.doc('weather/forecast').get().then(w=>{if(w.exists){WJ=w.data();if(WJ.warnings&&WJ.warnings.date===ymd(serviceDate(new Date())))WARN=WJ.warnings;drawWeather();drawWear();drawMini();drawClasses();drawTrend();drawAlerts();lastKey='';render()}}).catch(()=>{});
+  db.doc('traffic/now').get().then(w=>{if(w.exists){TRAFFIC=w.data();drawAlerts();lastKey='';render()}}).catch(()=>{});
   const snap=await DOC.get();
   if(snap.exists){const o=snap.data()||{};if(o.json&&(o.at||0)>ld('noriba3at',0)){S=Object.assign(sample(),JSON.parse(o.json));sv('noriba3',S);sv('noriba3at',o.at);fillStatic();destI=null;drawDest();lastKey='';refreshAll()}}
   else if(!S.example)save();
@@ -866,13 +1050,16 @@ $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday',
 }catch(e){}})();
 
 /* ---------- 起動 ---------- */
-function refreshAll(){drawDay();render();drawClasses();drawSong();drawWeather();drawWear();drawMini();drawTrend()}
+function refreshAll(){drawDay();render();drawClasses();drawSong();drawWeather();drawWear();drawItems();drawMini();drawTrend();drawAlerts();drawLog()}
 destI=ld('destI',null);
 // 毎朝は自動で行き先を選ぶ（授業がある日は大学）
 if(ld('destDate','')!==ymd(serviceDate(new Date()))){destI=null;sv('destDate',ymd(serviceDate(new Date())))}
 fillStatic();drawDest();sv('destI',destI);refreshAll();go(location.hash.slice(1),false);
+if(!(window.claude&&window.claude.use))loadWarnDirect(); // サイト版は気象庁の警報を直接取る
 loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});
-setInterval(()=>{tickCd();if(new Date().getSeconds()===0){drawDay();render();drawClasses()}},1000);
+setInterval(()=>{tickCd();if(new Date().getSeconds()===0){
+  if(!destManual){const a=autoDest();if(S.routes[a]&&S.routes[destI]&&S.routes[a].name!==S.routes[destI].name){destI=a;drawDest();lastKey=''}}
+  drawDay();render();drawClasses();drawAlerts()}},1000);
 setInterval(()=>{lastKey='';render()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastKey='';refreshAll();loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()})}});
 setInterval(()=>loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()}),30*60000);
