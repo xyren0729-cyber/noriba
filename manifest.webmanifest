@@ -1,0 +1,16 @@
+{
+  "name": "のりば",
+  "short_name": "のりば",
+  "description": "登録した駅の次の発車と遅れをすぐ確認できる発車案内",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e131a",
+  "theme_color": "#14213d",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}
