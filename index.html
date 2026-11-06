@@ -272,7 +272,6 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <section class="card" id="wear" aria-label="今日の服"><h2>今日の服</h2><p class="sm">天気を待っています…</p></section>
 </div>
 <section class="card" id="classes" aria-label="今日の授業"></section>
-<section class="card" id="items" aria-label="今日の持ち物" hidden></section>
 <section class="card" id="trend" aria-label="今日の気温の推移" hidden></section>
 <section class="card" id="song" aria-label="今日の1曲"></section>
 </div>
@@ -300,13 +299,6 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
 </div></details>
 <p class="sh">学校</p>
 <details id="s-class"><summary>時間割</summary><div class="pane" id="classedit"></div></details>
-<details id="s-items"><summary>持ち物</summary><div class="pane">
-  <p class="hint">「毎日: 」と曜日ごとに書きます。授業のある日だけ「今日」のページに出て、チェックできます。</p>
-  <pre class="ex">毎日: 学生証、PC、充電器
-月: 留学特別演習のファイル
-金: 英語のテキスト</pre>
-  <label class="f">持ち物<textarea id="itemsin"></textarea></label>
-</div></details>
 <p class="sh">身の回り</p>
 <details id="s-wear"><summary>持っている服</summary><div class="pane">
   <p class="hint">1行に1着。暖かさは名前から自動で判断します。合わないときは末尾に 1（薄い）〜5（とても暖かい）を付けてください。例：「黒パーカー 3」</p>
@@ -427,7 +419,7 @@ function sample(){const A=DIST?'学校':'大学',B=DIST?'おでかけ':'梅田';
   wear:{top:'白Tシャツ\n黒ロンT\nストライプシャツ\nグレーパーカー\nニット',bottom:'デニム\n黒スラックス\nチノパン',outer:'デニムジャケット\nパーカー\nウールコート\nダウン'},
   songs:'夜に駆ける - YOASOBI\nマリーゴールド - あいみょん\nPretender - Official髭男dism\n怪獣の花唄 - Vaundy\nアイドル - YOASOBI\n水平線 - back number\nKICK BACK - 米津玄師',
   playlist:'',
-  cal:'',items:'毎日: 学生証、PC\n金: 英語のテキスト',
+  cal:'',
   place:{name:'大阪市',lat:34.6937,lon:135.5023},
   jma:{office:'270000',point:'62078'}
 }}
@@ -732,21 +724,6 @@ function drawTrend(){
   svg.addEventListener('pointerleave',()=>{ln.setAttribute('visibility','hidden');rd.textContent=summ});
 }
 
-/* ---------- 持ち物（曜日ごと＋毎日） ----------
-   「毎日: 学生証、PC」「月: 線形代数の教科書」の形 */
-function itemsToday(){
-  const svc=serviceDate(new Date()),c=calFor(svc),wd=c&&c.wd!=null?c.wd:svc.getDay(),cs=classesToday(new Date()),out=[];
-  String(S.items||'').split(/\n/).forEach(l=>{const m=l.match(/^\s*(毎日|[日月火水木金土])\s*[:：]\s*(.+)$/);if(!m)return;
-    if(m[1]==='毎日'?cs.length:WD.indexOf(m[1])===wd&&cs.length)m[2].split(/[、,，]/).map(x=>x.trim()).filter(Boolean).forEach(x=>{if(!out.includes(x))out.push(x)})});
-  return out;
-}
-function drawItems(){
-  const el=$('items'),its=itemsToday(),k='chk:'+ymd(serviceDate(new Date())),ck=ld(k,[]);
-  if(!its.length){el.hidden=true;return}el.hidden=false;
-  const left=its.filter(x=>!ck.includes(x)).length;
-  el.innerHTML=`<h2>今日の持ち物${left?`・あと${left}つ`:'・そろいました'}</h2><ul class="chk">${its.map((x,i)=>`<li><label><input type="checkbox" id="it${i}" data-it="${esc(x)}" ${ck.includes(x)?'checked':''}> ${esc(x)}</label></li>`).join('')}</ul>`;
-}
-
 /* ---------- 朝ページの要約（体感・服・次の授業） ---------- */
 let WEAR_TXT='';
 function drawMini(){
@@ -755,7 +732,6 @@ function drawMini(){
   if(WEAR_TXT)parts.push(`<span>服</span>${esc(WEAR_TXT)}`);
   // 次の授業は主役カードに出ているので、ここには出さない（授業のない日だけ「授業なし」）
   if(!classesToday(now).length)parts.push('<span>授業</span>なし');
-  const its=itemsToday();if(its.length){const ck=ld('chk:'+ymd(serviceDate(now)),[]),left=its.filter(x=>!ck.includes(x)).length;if(left)parts.push(`<span>持ち物</span>あと${left}`)}
   $('mini').innerHTML=parts.map(x=>`<div class="${x.includes('>服<')?'w':''}">${x}</div>`).join('')+'<div class="more">今日 ›</div>';
 }
 
@@ -979,10 +955,7 @@ $('routeedit').addEventListener('click',e=>{
 $('classedit').addEventListener('input',()=>{const re=readClasses();changed();if(re)setTimeout(drawClassEdit,800)});
 $('classedit').addEventListener('click',e=>{const d=e.target.dataset.cd;if(!d)return;readClasses();classDay=+d;drawClassEdit()});
 ['w-top','w-bottom','w-outer'].forEach(id=>$(id).addEventListener('input',()=>{S.wear={top:$('w-top').value,bottom:$('w-bottom').value,outer:$('w-outer').value};changed()}));
-$('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(()=>{drawClasses();drawItems()},450)});
-$('itemsin').addEventListener('input',()=>{S.items=$('itemsin').value;changed();setTimeout(drawItems,450)});
-$('items').addEventListener('change',e=>{const x=e.target.dataset.it;if(x==null)return;const k='chk:'+ymd(serviceDate(new Date()));let ck=ld(k,[]);
-  ck=e.target.checked?[...new Set(ck.concat([x]))]:ck.filter(y=>y!==x);sv(k,ck);drawItems();drawMini()});
+$('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(drawClasses,450)});
 $('songs').addEventListener('input',()=>{S.songs=$('songs').value;changed()});
 $('playlist').addEventListener('input',()=>{S.playlist=$('playlist').value.trim();changed()});
 $('placebtn').onclick=async()=>{
@@ -994,7 +967,7 @@ $('placebtn').onclick=async()=>{
   }catch(e){$('placeres').textContent='検索できませんでした。通信を確認してください。'}
 };
 const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name}
-function fillStatic(){$('cal').value=S.cal||'';$('itemsin').value=S.items||'';$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
+function fillStatic(){$('cal').value=S.cal||'';$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
 
 /* ウィジェット用の書き出し・読み込み */
 let WJS='';fetch('widget.js').then(r=>r.ok?r.text():'').then(t=>WJS=t).catch(()=>{});
@@ -1050,7 +1023,7 @@ $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday',
 }catch(e){}})();
 
 /* ---------- 起動 ---------- */
-function refreshAll(){drawDay();render();drawClasses();drawSong();drawWeather();drawWear();drawItems();drawMini();drawTrend();drawAlerts();drawLog()}
+function refreshAll(){drawDay();render();drawClasses();drawSong();drawWeather();drawWear();drawMini();drawTrend();drawAlerts();drawLog()}
 destI=ld('destI',null);
 // 毎朝は自動で行き先を選ぶ（授業がある日は大学）
 if(ld('destDate','')!==ymd(serviceDate(new Date()))){destI=null;sv('destDate',ymd(serviceDate(new Date())))}
