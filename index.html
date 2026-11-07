@@ -315,6 +315,10 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <div class="row"><input type="text" id="placeq" placeholder="市区町村名（例：吹田）" style="flex:1;min-width:0"><button class="act" id="placebtn">検索</button></div>
   <div id="placeres" class="row"></div>
   <p class="hint" id="placecur"></p>
+  <p class="hint">学校の場所（任意）：入れると、学校にいる時間はその場所の気温で服を選び、気温の推移にも重ねます。警報もこの2か所で出します。</p>
+  <div class="row"><input type="text" id="placeq2" placeholder="学校の市区町村名（例：豊中）" style="flex:1;min-width:0"><button class="act" id="placebtn2">検索</button></div>
+  <div id="placeres2" class="row"></div>
+  <p class="hint" id="placecur2"></p>
 </div></details>
 <details id="s-jma" hidden><summary>天気の地域</summary><div class="pane">
   <p class="hint">気象庁の予報を毎晩受け取り、ここで選んだ地点の気温で服を選びます。</p>
@@ -517,10 +521,23 @@ function delayedLines(route){const T=trafficFresh();if(!T||!route)return [];cons
   route.legs.forEach(L=>LINEKEY.forEach(([re,k])=>{if(re.test(L.line||'')&&T.lines&&T.lines[k])ks.add(k)}));return [...ks]}
 const WARNNAME={'02':'暴風雪警報','03':'大雨警報','04':'洪水警報','05':'暴風警報','06':'大雪警報','07':'波浪警報','08':'高潮警報','10':'大雨注意報','12':'大雪注意報','13':'風雪注意報','14':'雷注意報','15':'強風注意報','16':'波浪注意報','18':'洪水注意報','19':'高潮注意報','20':'濃霧注意報','32':'暴風雪特別警報','33':'大雨特別警報','35':'暴風特別警報','36':'大雪特別警報','37':'波浪特別警報','38':'高潮特別警報'};
 const WARN_SHOW=new Set(['02','03','04','05','06','08','10','12','14','15','18','32','33','35','36','38']);
-function warnFromJma(j){const want={'2710000':'大阪市','2721100':'学校周辺'},out={};
+function warnFromJma(j,want){const out={};
   ((j.areaTypes||[])[1]||{areas:[]}).areas.forEach(a=>{if(!want[a.code])return;const ns=(a.warnings||[]).filter(w=>w.status!=='解除'&&w.status!=='発表警報・注意報はなし'&&WARN_SHOW.has(w.code)).map(w=>WARNNAME[w.code]);if(ns.length)out[want[a.code]]=ns});
   return {at:j.reportDatetime,areas:out}}
-async function loadWarnDirect(){try{const r=await fetch('https://www.jma.go.jp/bosai/warning/data/warning/270000.json');if(r.ok){WARN=warnFromJma(await r.json());drawAlerts()}}catch(e){}}
+// 場所（市区町村名）から気象庁の地域コードと予報区を探す。一度見つけたら設定に残す
+async function jmaAreaOf(p){if(!p||!p.name)return null;if(p.jma)return p.jma;
+  try{const A=await (await fetch('https://www.jma.go.jp/bosai/common/const/area.json')).json();
+    const up=c=>{for(const t of ['class20s','class15s','class10s','offices'])if(A[t]&&A[t][c])return A[t][c];return null};
+    const office=c=>{let x=A.class20s[c],k=c;for(let i=0;i<4&&x;i++){if(A.offices[k])return {code:k,name:x.name};k=x.parent;x=up(k)}return null};
+    const cs=Object.entries(A.class20s).filter(([c,v])=>v.name===p.name).map(([c])=>({code:c,o:office(c)})).filter(x=>x.o);
+    const hit=cs.find(x=>p.admin1&&x.o.name===p.admin1)||cs[0];if(!hit)return null;
+    p.jma={code:hit.code,office:hit.o.code};save();return p.jma}catch(e){return null}}
+async function loadWarnDirect(){try{
+  const ps=[S.place,S.place2].filter(Boolean),by={};
+  for(const p of ps){const a=await jmaAreaOf(p);if(a)(by[a.office]=by[a.office]||{})[a.code]=p.name}
+  const out={};let at='';
+  for(const [o,want] of Object.entries(by)){const r=await fetch(`https://www.jma.go.jp/bosai/warning/data/warning/${o}.json`);if(r.ok){const w=warnFromJma(await r.json(),want);Object.assign(out,w.areas);at=w.at}}
+  WARN={at,areas:out};drawAlerts()}catch(e){}}
 function drawAlerts(){
   const el=$('alerts'),chips=[];
   if(WARN&&WARN.areas)Object.entries(WARN.areas).forEach(([a,ns])=>chips.push({lv:ns.some(n=>/警報/.test(n)&&!/注意報/.test(n))?'bad':'warn',t:`${a}：${ns.join('・')}`}));
@@ -705,7 +722,7 @@ function drawTrend(){
   let g='';
   // 大学にいる時間帯の帯
   if(sc){const bx=X(hh(two?sc.arrive:sc.cs[0].start)),bw=X(hh(sc.out))-bx;g+=`<rect class="band" x="${bx}" y="${T}" width="${bw}" height="${H0-T-B}"/>`;
-    if(two)g+=`<text x="${bx+4}" y="${H0-B-4}" text-anchor="start">学校周辺</text>`}
+    if(two)g+=`<text x="${bx+4}" y="${H0-B-4}" text-anchor="start">${esc(G.campusName)}</text>`}
   [lo,Math.round((lo+hi)/2),hi].forEach(t=>{g+=`<line class="gd" x1="${L}" x2="${W0-R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L-4}" y="${Y(t)+3}" text-anchor="end">${t}°</text>`});
   [6,9,12,15,18,21,24].forEach(h=>g+=`<text x="${X(h)}" y="${H0-6}" text-anchor="middle">${h}時</text>`);
   // 予定の線（ラベルは2段に交互に置いて重なりを避ける）
@@ -719,11 +736,11 @@ function drawTrend(){
     g+=`<text class="v" x="${X(p.h)+dx}" y="${Y(p.temp)+(p===mx?-9:16)}" text-anchor="${edge}">${p.temp}℃</text>`});
   g+=`<line class="hv" id="hvl" x1="0" x2="0" y1="${T}" y2="${H0-B}" visibility="hidden"/>`;
   const summ=sc?`出発 ${hm(sc.leave)} 約${Math.round(tempAt(sc.leave,'home'))}℃ → ${sc.cs.map(c=>`${c.p}限 ${Math.round(tempAt(c.start,'campus'))}℃`).join(' → ')} → 帰宅 ${hm(sc.home)} 約${Math.round(tempAt(sc.home,'home'))}℃`:`${DAYW()}は授業がありません。`;
-  el.innerHTML=`<h2>${jmaTomorrow()?'明日の':''}気温の推移・${G.Hc&&sc?'大阪市・学校周辺':esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?'灰色＝大学（学校周辺）にいる時間。それ以外は大阪市の気温。':'灰色＝大学にいる時間。'}押すとその時刻の気温が出ます。</p>`:''}`;
+  el.innerHTML=`<h2>${wxTm()?'明日の':''}気温の推移・${G.Hc&&sc?esc(G.homeName+'・'+G.campusName):esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?esc(`灰色＝${sc.name}（${G.campusName}）にいる時間。それ以外は${G.homeName}の気温。`):'灰色＝'+esc(sc.name)+'にいる時間。'}押すとその時刻の気温が出ます。</p>`:''}`;
   const svg=$('tsvg'),rd=$('tread'),ln=$('hvl');
   const mv=e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W0;if(x<L||x>W0-R)return;
     const h=h0+(x-L)/(W0-L-R)*(h1-h0),d=addMin(svc,h*60);ln.setAttribute('x1',x);ln.setAttribute('x2',x);ln.setAttribute('visibility','visible');
-    rd.textContent=`${hm(d)} ごろ 約${Math.round(tempAt(d))}℃${two?(whereAt(d)==='campus'?'（学校周辺）':'（大阪市）'):''}`};
+    rd.textContent=`${hm(d)} ごろ 約${Math.round(tempAt(d))}℃${two?esc(whereAt(d)==='campus'?`（${G.campusName}）`:`（${G.homeName}）`):''}`};
   svg.addEventListener('pointermove',mv);svg.addEventListener('pointerdown',mv);
   svg.addEventListener('pointerleave',()=>{ln.setAttribute('visibility','hidden');rd.textContent=summ});
 }
@@ -732,7 +749,7 @@ function drawTrend(){
 let WEAR_TXT='';
 function drawMini(){
   const d=daySpan(),now=new Date(),nx=classesToday(now).find(c=>c.end>now),parts=[];
-  parts.push(d&&d.jma?`<span>${jmaTomorrow()?'明日 ':''}気温</span><b>${d.dayMin??d.min}〜${d.dayMax??d.max}℃</b>${d.rain>=30?' ☂':''}`:d?`<span>体感</span><b>${Math.round(W&&W.current?W.current.apparent_temperature:d.avg)}℃</b>${d.rain>=30?' ☂':''}`:'<span>体感</span>未選択');
+  parts.push(d&&d.jma?`<span>${wxTm()?'明日 ':''}気温</span><b>${d.dayMin??d.min}〜${d.dayMax??d.max}℃</b>${d.rain>=30?' ☂':''}`:d?`<span>体感</span><b>${Math.round(W&&W.current?W.current.apparent_temperature:d.avg)}℃</b>${d.rain>=30?' ☂':''}`:'<span>体感</span>未選択');
   if(WEAR_TXT)parts.push(`<span>服</span>${esc(WEAR_TXT)}`);
   // 次の授業は主役カードに出ているので、ここには出さない（授業のない日だけ「授業なし」）
   if(!classesToday(now).length)parts.push('<span>授業</span>なし');
@@ -767,11 +784,15 @@ function drawSong(){
 /* ---------- 天気（Open-Meteo、登録不要） ---------- */
 const WC=c=>c===0?'快晴':c===1?'晴れ':c===2?'晴れ時々くもり':c===3?'くもり':c<=48?'霧':c<=57?'霧雨':c<=67?'雨':c<=77?'雪':c<=82?'にわか雨':c<=86?'にわか雪':'雷雨';
 let W=null;
+let W2=null; // 学校の場所の気温（設定したとき）
 async function loadWeather(force){
-  const pl=S.place,ck=ld('wx',null);
-  if(!force&&ck&&ck.key===pl.lat+','+pl.lon&&Date.now()-ck.at<30*60000){W=ck.data;return}
-  const u=`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,apparent_temperature,precipitation_probability&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=1`;
-  try{const r=await fetch(u);if(!r.ok)throw 0;W=await r.json();sv('wx',{key:pl.lat+','+pl.lon,at:Date.now(),data:W})}catch(e){if(ck)W=ck.data;else W=null}
+  const pl=S.place,p2=S.place2,key=pl.lat+','+pl.lon+'|'+(p2?p2.lat+','+p2.lon:''),ck=ld('wx',null);
+  if(!force&&ck&&ck.key===key&&Date.now()-ck.at<30*60000){W=ck.data;W2=ck.data2||null;return}
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,apparent_temperature,precipitation_probability&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=2`;
+  const u2=p2?`https://api.open-meteo.com/v1/forecast?latitude=${p2.lat}&longitude=${p2.lon}&hourly=temperature_2m&timezone=Asia%2FTokyo&forecast_days=2`:null;
+  try{const r=await fetch(u);if(!r.ok)throw 0;W=await r.json();
+    W2=null;if(u2){try{const r2=await fetch(u2);if(r2.ok)W2=await r2.json()}catch(e){}}
+    sv('wx',{key,at:Date.now(),data:W,data2:W2})}catch(e){if(ck){W=ck.data;W2=ck.data2||null}else W=null}
 }
 const FEELS=[['寒い',6],['肌寒い',12],['ちょうどいい',18],['暖かい',23],['暑い',29]];
 let WJ=null,WALL=null; // 気象庁の予報（毎晩、翌日分が届く。配布版は全国分）
@@ -797,21 +818,25 @@ function pickWJ(d){let c={};try{c=JSON.parse(localStorage.getItem('wjc')||'{}')}
   if(d&&d.date)c[d.date]=d;const t=ymd(serviceDate(new Date())),tm=ymd(addDays(serviceDate(new Date()),1));
   Object.keys(c).forEach(k=>{if(k<t)delete c[k]});try{localStorage.setItem('wjc',JSON.stringify(c))}catch(e){}
   const h=new Date().getHours();return (h>=18||h<4)?(c[tm]||c[t]||d):(c[t]||c[tm]||d)}
-const wxDay=()=>jmaTomorrow()?addDays(serviceDate(new Date()),1):serviceDate(new Date());
-const DAYW=()=>jmaTomorrow()?'明日':'今日';
+const nightNow=()=>{const h=new Date().getHours();return h>=21||h<4};
+const wxTm=()=>jmaToday()?jmaTomorrow():!!(W&&W.hourly&&nightNow());
+const wxDay=()=>wxTm()?addDays(serviceDate(new Date()),1):serviceDate(new Date());
+const DAYW=()=>wxTm()?'明日':'今日';
 function manualFeel(){const f=ld('feel',null);return f&&f.date===ymd(serviceDate(new Date()))?f:null}
 /* 3時間ごとの予報から、任意の時刻の気温を直線でつないで求める */
+const inParen=s=>(String(s||'').match(/（(.+?)）/)||[])[1]||String(s||'');
 function getHourly(){
   const j=jmaToday();
   if(j&&j.hourly&&j.hourly.length>1){const pl=j.places||{};
     return {place:j.place,src:'気象庁 3時間ごと',H:j.hourly,Hc:pl.campus&&pl.campus.hourly&&pl.campus.hourly.length>1?pl.campus.hourly:null,
-      homeName:pl.home?pl.home.name:j.place,campusName:pl.campus?pl.campus.name:'',pop:j.pop||0,min:j.min,max:j.max}}
-  if(W&&W.hourly&&W.hourly.time){const svc=ymd(serviceDate(new Date())),H=[];
+      homeName:pl.home?inParen(pl.home.name):j.place,campusName:pl.campus?inParen(pl.campus.name):'',pop:j.pop||0,min:j.min,max:j.max}}
+  if(W&&W.hourly&&W.hourly.time){const svc=ymd(wxDay()),H=[];
     W.hourly.time.forEach((t,i)=>{if(t.startsWith(svc))H.push({h:+t.slice(11,13),temp:W.hourly.temperature_2m?W.hourly.temperature_2m[i]:W.hourly.apparent_temperature[i]})});
+    let Hc=null;if(W2&&W2.hourly&&S.place2){Hc=[];W2.hourly.time.forEach((t,i)=>{if(t.startsWith(svc)){const h=+t.slice(11,13),b=H.find(x=>x.h===h),v=W2.hourly.temperature_2m[i];Hc.push({h,temp:v,delta:b?v-b.temp:null})}});if(Hc.length<2)Hc=null}
     if(H.length>1){const pp=W.hourly.precipitation_probability||[];const ts=H.map(x=>x.temp);
-      return {place:S.place.name,src:'Open-Meteo 1時間ごと',H,pop:Math.max(0,...W.hourly.time.map((t,i)=>t.startsWith(svc)&&+t.slice(11,13)>=6&&+t.slice(11,13)<=18?(pp[i]??0):0)),min:Math.round(Math.min(...ts)),max:Math.round(Math.max(...ts))}}}
+      return {place:S.place.name,src:'Open-Meteo 1時間ごと',H,Hc,homeName:S.place.name,campusName:Hc?S.place2.name:'',pop:Math.max(0,...W.hourly.time.map((t,i)=>t.startsWith(svc)&&+t.slice(11,13)>=6&&+t.slice(11,13)<=18?(pp[i]??0):0)),min:Math.round(Math.min(...ts)),max:Math.round(Math.max(...ts))}}}
   return null}
-/* その時刻にいる場所：大学に着いてから大学を出るまでは大学（学校周辺）、それ以外は自宅周辺 */
+/* その時刻にいる場所：学校に着いてから学校を出るまでは学校の場所、それ以外は自宅周辺 */
 function whereAt(d){const G=getHourly(),sc=schedule();return G&&G.Hc&&sc&&d>=sc.arrive&&d<=sc.out?'campus':'home'}
 function tempAt(d,where){const G=getHourly();if(!G)return null;
   const h=(d-wxDay())/3600000,H=(where||whereAt(d))==='campus'&&G.Hc?G.Hc:G.H;
@@ -820,7 +845,7 @@ function tempAt(d,where){const G=getHourly();if(!G)return null;
 /* 今日の予定：家を出る→授業→帰宅。大学の経路と時間割から求める */
 let schMemo={k:'',v:null};
 function schedule(){
-  const now=jmaTomorrow()?addMin(wxDay(),4*60):new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length+String(S.cal||'').length+WALKADD;if(schMemo.k===k)return schMemo.v;
+  const now=wxTm()?addMin(wxDay(),4*60):new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length+String(S.cal||'').length+WALKADD;if(schMemo.k===k)return schMemo.v;
   const v=schedule0(now);schMemo={k,v};return v}
 function schedule0(now){
   const cs=classesToday(now);if(!cs.length)return null;
@@ -848,22 +873,26 @@ function daySpan(){ // 予定（家を出る〜帰宅）の気温と降水確率
   const at=idx.map(i=>h.apparent_temperature[i]),pp=idx.map(i=>h.precipitation_probability[i]??0);
   return {min:Math.min(...at),max:Math.max(...at),avg:at.reduce((a,b)=>a+b,0)/at.length,rain:Math.max(...pp)};
 }
+function campusLine(G){if(!G||!G.Hc)return '';
+  const hs=G.Hc.filter(x=>x.h>=6&&x.h<=21).map(x=>x.temp),ds=G.Hc.filter(x=>x.delta!=null&&x.h>=6&&x.h<=21).map(x=>x.delta);if(!hs.length)return '';
+  const dv=ds.length?ds.reduce((a,b)=>a+b,0)/ds.length:0,hn=esc(G.homeName);
+  return `<div class="sm">${esc(G.campusName)}（学校）${Math.round(Math.min(...hs))}〜${Math.round(Math.max(...hs))}℃${Math.abs(dv)>=0.3?`・${hn}より約${Math.abs(dv).toFixed(1)}℃${dv<0?'低い':'高い'}`:`・${hn}とほぼ同じ`}</div>`}
 function drawWeather(){
   const el=$('weather');
   if(!W||!W.current){const j=jmaToday();
     if(j){const G=getHourly();let ib='';
-      if(G&&G.Hc){const hs=G.Hc.filter(x=>x.h>=6&&x.h<=21).map(x=>x.temp),ds=G.Hc.filter(x=>x.delta!=null&&x.h>=6&&x.h<=21).map(x=>x.delta);
-        const dv=ds.length?ds.reduce((a,b)=>a+b,0)/ds.length:0;
-        ib=`<div class="sm">学校周辺（大学）${Math.round(Math.min(...hs))}〜${Math.round(Math.max(...hs))}℃${Math.abs(dv)>=0.3?`・大阪市より約${Math.abs(dv).toFixed(1)}℃${dv<0?'低い':'高い'}`:'・大阪市とほぼ同じ'}</div>`}
+      ib=campusLine(G);
       el.innerHTML=`<h2>${jmaTomorrow()?'明日の':''}天気・${esc(j.place)}（気象庁）</h2><div class="big">${j.max}<small>℃ 最高</small></div><div class="sm">${esc(j.weather)}</div><div class="sm">最低 ${j.min}℃・日中の降水 ${j.pop}%</div>${ib}`;return}
     const f=manualFeel()||{};
     el.innerHTML=`<h2>今日の体感</h2><p class="sm">天気を自動で取得できないので、<a href="https://tenki.jp/" target="_blank" rel="noopener">天気予報</a>を見て選んでください。</p>
      <div class="feel">${FEELS.map(([n,t])=>`<button data-feel="${t}" aria-pressed="${f.t===t}">${n}</button>`).join('')}<button data-rain="1" aria-pressed="${!!f.rain}">雨の予報</button></div>`;return}
-  const c=W.current,d=daySpan();
+  const c=W.current,d=daySpan(),G=getHourly();
+  if(wxTm()&&d){el.innerHTML=`<h2>明日の天気・${esc(S.place.name)}</h2><div class="big">${d.dayMax??Math.round(d.max)}<small>℃ 最高</small></div>
+   <div class="sm">最低 ${d.dayMin??Math.round(d.min)}℃・日中の降水 ${d.rain}%</div>${campusLine(G)}`;return}
   el.innerHTML=`<h2>天気と体感温度・${esc(S.place.name)}</h2>
    <div class="big">${Math.round(c.apparent_temperature)}<small>℃ 体感</small></div>
    <div class="sm">${WC(c.weather_code)}・気温 ${Math.round(c.temperature_2m)}℃</div>
-   <div class="sm">今日の気温 ${d.dayMin??Math.round(d.min)}〜${d.dayMax??Math.round(d.max)}℃・降水 ${d.rain}%</div>`;
+   <div class="sm">今日の気温 ${d.dayMin??Math.round(d.min)}〜${d.dayMax??Math.round(d.max)}℃・降水 ${d.rain}%</div>${campusLine(G)}`;
 }
 
 /* ---------- 服の選択 ---------- */
@@ -900,9 +929,9 @@ function drawWear(){
   const a=d.avg,feel=a>=25?'暑い・半袖で':a>=20?'暖かい・長袖1枚で':a>=15?'涼しい・薄手の羽織りがあると安心':a>=10?'肌寒い・上着が必要':a>=5?'寒い・厚手の上着を':'とても寒い・いちばん暖かい上着を';
   WEAR_TXT=[top&&top.name,out&&out.name].filter(Boolean).join('＋')||feel;drawMini();
   const G2=getHourly(),two=G2&&G2.Hc;
-  const why=d.sched?`<p class="sm">出発 ${hm(d.sched.leave)}${two?' 大阪市':''} 約${Math.round(d.tl)}℃・大学を出る ${hm(d.sched.out)}${two?' 学校周辺':''} 約${Math.round(d.tb)}℃で選んでいます</p>`:'';
+  const why=d.sched?`<p class="sm">出発 ${hm(d.sched.leave)}${two?' '+esc(G2.homeName):''} 約${Math.round(d.tl)}℃・${esc(d.sched.name)}を出る ${hm(d.sched.out)}${two?' '+esc(G2.campusName):''} 約${Math.round(d.tb)}℃で選んでいます</p>`:'';
   const today=ymd(serviceDate(new Date())),picked=[top&&top.name,out&&out.name].filter(Boolean),worn=(S.worn||{})[today];
-  const wbtn=jmaTomorrow()?'':picked.length?(worn?`<p class="sm wornok">今日はこれを着る</p>`:`<button class="act sub small" id="wearbtn">これを着る</button>`):'';
+  const wbtn=wxTm()?'':picked.length?(worn?`<p class="sm wornok">今日はこれを着る</p>`:`<button class="act sub small" id="wearbtn">これを着る</button>`):'';
   el.innerHTML=`<h2>${DAYW()}の服</h2><p class="feelx">${feel}</p>${why}<div class="wear">${top?`<div><span>上</span>${esc(top.name)}</div>`:''}${bot?`<div><span>下</span>${esc(bot.name)}</div>`:''}${out?`<div><span>外</span>${esc(out.name)}</div>`:needOuter?'':'<div><span>外</span>なしでOK</div>'}</div>${wbtn}`
     +(top||bot?'':'<p class="sm">設定の「持っている服」を入れてください。</p>')+tags.join(' ');
 }
@@ -972,15 +1001,18 @@ $('classedit').addEventListener('click',e=>{const d=e.target.dataset.cd;if(!d)re
 $('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(drawClasses,450)});
 $('songs').addEventListener('input',()=>{S.songs=$('songs').value;changed()});
 $('playlist').addEventListener('input',()=>{S.playlist=$('playlist').value.trim();changed()});
-$('placebtn').onclick=async()=>{
-  const q=$('placeq').value.trim();if(!q)return;$('placeres').textContent='検索中…';
+const placeSearch=k=>async()=>{const sx=k==='place'?'':'2';
+  const q=$('placeq'+sx).value.trim();if(!q)return;$('placeres'+sx).textContent='検索中…';
   try{const r=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&language=ja&format=json&name='+encodeURIComponent(q))).json();
     const res=(r.results||[]).filter(x=>x.country_code==='JP');
-    $('placeres').innerHTML=res.length?res.map((x,i)=>`<button class="act sub" data-pl="${i}">${esc(x.name)}（${esc(x.admin1||'')}）</button>`).join(''):'見つかりませんでした。市区町村名で探してください。';
-    $('placeres').onclick=async e=>{const i=e.target.dataset.pl;if(i===undefined)return;const x=res[+i];S.place={name:x.name,lat:x.latitude,lon:x.longitude};save();$('placeres').innerHTML='';drawPlace();await loadWeather(true);drawWeather();drawWear();drawMini();drawClasses();drawTrend()};
-  }catch(e){$('placeres').textContent='検索できませんでした。通信を確認してください。'}
+    $('placeres'+sx).innerHTML=res.length?res.map((x,i)=>`<button class="act sub" data-pl="${i}">${esc(x.name)}（${esc(x.admin1||'')}）</button>`).join(''):'見つかりませんでした。市区町村名で探してください。';
+    $('placeres'+sx).onclick=async e=>{const i=e.target.dataset.pl;if(i===undefined)return;const x=res[+i];S[k]={name:x.name,lat:x.latitude,lon:x.longitude,admin1:x.admin1||''};save();$('placeres'+sx).innerHTML='';drawPlace();await loadWeather(true);if(SITE)loadWarnDirect();drawWeather();drawWear();drawMini();drawClasses();drawTrend()};
+  }catch(e){$('placeres'+sx).textContent='検索できませんでした。通信を確認してください。'}
 };
-const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name}
+$('placebtn').onclick=placeSearch('place');$('placebtn2').onclick=placeSearch('place2');
+const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name;
+  $('placecur2').innerHTML=S.place2?`学校の場所：${esc(S.place2.name)} <button class="act sub small" id="place2x">外す</button>`:'学校の場所：なし';
+  if($('place2x'))$('place2x').onclick=async()=>{delete S.place2;save();drawPlace();await loadWeather(true);refreshAll();if(SITE)loadWarnDirect()}}
 function fillStatic(){$('cal').value=S.cal||'';$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
 
 /* ウィジェット用の書き出し・読み込み */
@@ -1045,7 +1077,7 @@ fillStatic();drawDest();sv('destI',destI);refreshAll();go(location.hash.slice(1)
 const SITE=!(window.claude&&window.claude.use);
 // サイト版：JR西日本の運行情報は、GitHub が10分ごとに取ってきた traffic.json を読む（ブラウザからは直接読めないため）
 async function loadTrafficSite(){if(!SITE||location.protocol!=='https:')return;try{const r=await fetch('traffic.json?t='+Date.now(),{cache:'no-store'});if(r.ok){TRAFFIC=await r.json();drawAlerts();lastKey='';render()}}catch(e){}}
-if(SITE){loadTrafficSite();setInterval(loadTrafficSite,5*60000)} // サイト版は気象庁の警報を直接取る
+if(SITE){loadWarnDirect();loadTrafficSite();setInterval(loadTrafficSite,5*60000)} // サイト版は気象庁の警報を直接取る
 loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});
 setInterval(()=>{tickCd();if(new Date().getSeconds()===0){
   if(!destManual){const a=autoDest();if(S.routes[a]&&S.routes[destI]&&S.routes[a].name!==S.routes[destI].name){destI=a;drawDest();lastKey=''}}
