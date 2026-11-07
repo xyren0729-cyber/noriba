@@ -562,13 +562,17 @@ function fmtCd(s){
 }
 const viaOf=r=>r.via||r.legs.map(l=>l.line||l.from).join('→');
 /* 行き方が複数ある行き先では、その時点でいちばん良いものを選ぶ。
-   目標時刻あり：間に合う中で一番遅く出られるもの（なければ一番早く着くもの）。目標なし：一番早く着くもの */
+   目標時刻あり：間に合う中で一番遅く出られるもの（なければ一番早く着くもの）。目標なし：一番早く着くもの。
+   「予備」にした行き方は、ほかの行き方が遅れているか間に合わないときだけ選ぶ */
 function bestPlan(name,now){
   const alts=S.routes.map((r,i)=>({r,i})).filter(x=>x.r.name===name&&x.r.legs.length).map(x=>({...x,P:plan(x.r,now)})).filter(x=>x.P&&x.P.p);
   if(!alts.length)return null;
   const ok=x=>!!(x.P.tg&&x.P.s!=='late');
+  // 予備の行き方（例：阪急）は、ほかが遅れているか間に合わないときだけ使う
+  const tier=x=>(x.P.tg&&x.P.s==='late')||delayedLines(x.r).length?2:x.r.spare?1:0;
   alts.sort((a,b)=>{
     const pen=x=>delayedLines(x.r).length?15*60000:0; // 遅れている路線は15分不利として比べる
+    if(tier(a)!==tier(b))return tier(a)-tier(b);
     if(a.P.tg||b.P.tg){if(ok(a)!==ok(b))return ok(a)?-1:1;if(ok(a))return (b.P.p.leave-pen(b))-(a.P.p.leave-pen(a));return (a.P.p.arrive+pen(a))-(b.P.p.arrive+pen(b))}
     return (a.P.p.arrive+pen(a)-b.P.p.arrive-pen(b))||(b.P.p.leave-a.P.p.leave)});
   return {best:alts[0],alts};
@@ -901,6 +905,7 @@ function drawRouteEdit(){
   S.routes.map((r,ri)=>`<div class="leg" style="background:var(--surface)"><h3>${esc(r.name||'経路')}${r.legs.length?`・${esc(viaOf(r))}`:''}${S.routes.filter(x=>x.name===r.name).length>1?`<button class="act danger" data-dr="${ri}">この行き方を消す</button>`:''}</h3>
     <div class="r2">${field('行き先の名前',`r${ri}name`,r.name)}${field('家→駅 徒歩（分）',`r${ri}home`,r.home,'number','min="0" inputmode="numeric"')}</div>
     ${field('行き方の名前（任意。同じ行き先に複数あるとき、いちばん早いものを自動で選びます）',`r${ri}via`,r.via||'')}
+    ${S.routes.filter(x=>x.name===r.name).length>1?`<label class="f" style="display:flex;align-items:center;gap:.5em"><input type="checkbox" id="r${ri}spare" ${r.spare?'checked':''}>予備にする（ほかの行き方が遅れている・間に合わないときだけ使う）</label>`:''}
     <div class="r3"><label class="f">着く時刻の基準<select id="r${ri}tgt">
       <option value="class" ${r.target==='class'?'selected':''}>授業の開始</option>
       <option value="time" ${/^\d/.test(r.target||'')?'selected':''}>時刻を指定</option>
@@ -920,7 +925,7 @@ function drawRouteEdit(){
 }
 function readRoutes(){
   S.routes.forEach((r,ri)=>{const v=id=>$(id)?.value??'';
-    r.name=v(`r${ri}name`).trim()||r.name;r.via=v(`r${ri}via`).trim();r.home=+v(`r${ri}home`)||0;r.last=+v(`r${ri}last`)||0;r.buffer=+v(`r${ri}buf`)||0;
+    r.name=v(`r${ri}name`).trim()||r.name;r.via=v(`r${ri}via`).trim();if($(`r${ri}spare`))r.spare=$(`r${ri}spare`).checked;r.home=+v(`r${ri}home`)||0;r.last=+v(`r${ri}last`)||0;r.buffer=+v(`r${ri}buf`)||0;
     const tg=v(`r${ri}tgt`);r.target=tg==='time'?(v(`r${ri}tt`)||''):tg;
     r.legs.forEach((L,li)=>{const k=`r${ri}l${li}`;L.from=v(k+'from');L.to=v(k+'to');L.line=v(k+'line');L.ride=+v(k+'ride')||0;L.xfer=+v(k+'xfer')||0;L.wd=v(k+'wd');L.we=v(k+'we')});
   });
@@ -1028,13 +1033,16 @@ destI=ld('destI',null);
 // 毎朝は自動で行き先を選ぶ（授業がある日は大学）
 if(ld('destDate','')!==ymd(serviceDate(new Date()))){destI=null;sv('destDate',ymd(serviceDate(new Date())))}
 fillStatic();drawDest();sv('destI',destI);refreshAll();go(location.hash.slice(1),false);
-if(!(window.claude&&window.claude.use))loadWarnDirect(); // サイト版は気象庁の警報を直接取る
+const SITE=!(window.claude&&window.claude.use);
+// サイト版：JR西日本の運行情報は、GitHub が10分ごとに取ってきた traffic.json を読む（ブラウザからは直接読めないため）
+async function loadTrafficSite(){if(!SITE||location.protocol!=='https:')return;try{const r=await fetch('traffic.json?t='+Date.now(),{cache:'no-store'});if(r.ok){TRAFFIC=await r.json();drawAlerts();lastKey='';render()}}catch(e){}}
+if(SITE){loadWarnDirect();loadTrafficSite();setInterval(loadTrafficSite,5*60000)} // サイト版は気象庁の警報を直接取る
 loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});
 setInterval(()=>{tickCd();if(new Date().getSeconds()===0){
   if(!destManual){const a=autoDest();if(S.routes[a]&&S.routes[destI]&&S.routes[a].name!==S.routes[destI].name){destI=a;drawDest();lastKey=''}}
   drawDay();render();drawClasses();drawAlerts()}},1000);
 setInterval(()=>{lastKey='';render()},15000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastKey='';refreshAll();loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()})}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastKey='';refreshAll();loadTrafficSite();loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()})}});
 setInterval(()=>loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()}),30*60000);
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>

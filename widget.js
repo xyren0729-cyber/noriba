@@ -150,8 +150,11 @@ async function build() {
   // 同じ行き先に行き方が複数あれば、いちばん良いものを選ぶ（遅れている路線は15分不利）
   const pen = x => delayedLines(x).length ? 15 * 60000 : 0;
   const alts = routes.filter(x => x.name === r.name && (x.legs || []).length).map(x => ({ x, P: plan(x, now) })).filter(a => a.P);
+  // 予備の行き方（例：阪急）は、ほかが遅れているか間に合わないときだけ使う
+  const tier = q => (q.P.tg && q.P.s === "late") || delayedLines(q.x).length ? 2 : q.x.spare ? 1 : 0;
   alts.sort((a, b) => {
     const ok = q => !!(q.P.tg && q.P.s !== "late");
+    if (tier(a) !== tier(b)) return tier(a) - tier(b);
     if (a.P.tg || b.P.tg) { if (ok(a) !== ok(b)) return ok(a) ? -1 : 1; return ok(a) ? (b.P.p.leave - pen(b.x)) - (a.P.p.leave - pen(a.x)) : (a.P.p.arrive + pen(a.x)) - (b.P.p.arrive + pen(b.x)); }
     return (a.P.p.arrive + pen(a.x) - b.P.p.arrive - pen(b.x)) || (b.P.p.leave - a.P.p.leave);
   });
