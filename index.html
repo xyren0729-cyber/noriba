@@ -695,7 +695,7 @@ function drawClasses(){
 function drawTrend(){
   const el=$('trend'),G=getHourly();
   if(!G){el.hidden=true;return}el.hidden=false;const j={place:G.place};
-  const sc=schedule(),svc=serviceDate(new Date());
+  const sc=schedule(),svc=wxDay();
   const H=[];for(let h=6;h<=24;h+=0.5){const v=tempAt(addMin(svc,h*60));if(v!=null)H.push({h,temp:Math.round(v*10)/10})}
   const W0=340,H0=132,L=26,R=8,T=26,B=20,h0=6,h1=24;
   const lo=Math.floor(Math.min(...H.map(x=>x.temp))-2),hi=Math.ceil(Math.max(...H.map(x=>x.temp))+3);
@@ -718,8 +718,8 @@ function drawTrend(){
   [mx,mn].forEach(p=>{const edge=p.h<=7?'start':p.h>=23?'end':'middle',dx=edge==='start'?6:edge==='end'?-6:0;
     g+=`<text class="v" x="${X(p.h)+dx}" y="${Y(p.temp)+(p===mx?-9:16)}" text-anchor="${edge}">${p.temp}℃</text>`});
   g+=`<line class="hv" id="hvl" x1="0" x2="0" y1="${T}" y2="${H0-B}" visibility="hidden"/>`;
-  const summ=sc?`出発 ${hm(sc.leave)} 約${Math.round(tempAt(sc.leave,'home'))}℃ → ${sc.cs.map(c=>`${c.p}限 ${Math.round(tempAt(c.start,'campus'))}℃`).join(' → ')} → 帰宅 ${hm(sc.home)} 約${Math.round(tempAt(sc.home,'home'))}℃`:'今日は授業がありません。';
-  el.innerHTML=`<h2>気温の推移・${G.Hc&&sc?'大阪市・茨木市':esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?'灰色＝大学（茨木市）にいる時間。それ以外は大阪市の気温。':'灰色＝大学にいる時間。'}押すとその時刻の気温が出ます。</p>`:''}`;
+  const summ=sc?`出発 ${hm(sc.leave)} 約${Math.round(tempAt(sc.leave,'home'))}℃ → ${sc.cs.map(c=>`${c.p}限 ${Math.round(tempAt(c.start,'campus'))}℃`).join(' → ')} → 帰宅 ${hm(sc.home)} 約${Math.round(tempAt(sc.home,'home'))}℃`:`${DAYW()}は授業がありません。`;
+  el.innerHTML=`<h2>${jmaTomorrow()?'明日の':''}気温の推移・${G.Hc&&sc?'大阪市・茨木市':esc(j.place)}（${G.src}）</h2><div class="tchart"><svg id="tsvg" viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${esc(summ)}">${g}</svg></div><p class="tread" id="tread">${esc(summ)}</p>${sc?`<p class="sm">${two?'灰色＝大学（茨木市）にいる時間。それ以外は大阪市の気温。':'灰色＝大学にいる時間。'}押すとその時刻の気温が出ます。</p>`:''}`;
   const svg=$('tsvg'),rd=$('tread'),ln=$('hvl');
   const mv=e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W0;if(x<L||x>W0-R)return;
     const h=h0+(x-L)/(W0-L-R)*(h1-h0),d=addMin(svc,h*60);ln.setAttribute('x1',x);ln.setAttribute('x2',x);ln.setAttribute('visibility','visible');
@@ -732,7 +732,7 @@ function drawTrend(){
 let WEAR_TXT='';
 function drawMini(){
   const d=daySpan(),now=new Date(),nx=classesToday(now).find(c=>c.end>now),parts=[];
-  parts.push(d&&d.jma?`<span>気温</span><b>${d.dayMin??d.min}〜${d.dayMax??d.max}℃</b>${d.rain>=30?' ☂':''}`:d?`<span>体感</span><b>${Math.round(W&&W.current?W.current.apparent_temperature:d.avg)}℃</b>${d.rain>=30?' ☂':''}`:'<span>体感</span>未選択');
+  parts.push(d&&d.jma?`<span>${jmaTomorrow()?'明日 ':''}気温</span><b>${d.dayMin??d.min}〜${d.dayMax??d.max}℃</b>${d.rain>=30?' ☂':''}`:d?`<span>体感</span><b>${Math.round(W&&W.current?W.current.apparent_temperature:d.avg)}℃</b>${d.rain>=30?' ☂':''}`:'<span>体感</span>未選択');
   if(WEAR_TXT)parts.push(`<span>服</span>${esc(WEAR_TXT)}`);
   // 次の授業は主役カードに出ているので、ここには出さない（授業のない日だけ「授業なし」）
   if(!classesToday(now).length)parts.push('<span>授業</span>なし');
@@ -789,7 +789,16 @@ function drawJmaSel(){
 }
 function onJma(){S.jma={office:$('jmaoff').value,point:$('jmapt').value};const o=WALL.offices[S.jma.office];if(!o.points.some(p=>p.code===S.jma.point))S.jma.point=o.points[0].code;
   save();drawJmaSel();pickJma();drawWeather();drawWear();drawMini()}
-const jmaToday=()=>WJ&&WJ.date===ymd(serviceDate(new Date()))&&WJ.max!=null?WJ:null;
+// 毎晩 20:43 に明日の予報で上書きされるので、夜（〜翌4時）は明日の天気と服を出す
+const jmaTomorrow=()=>!!(WJ&&WJ.max!=null&&WJ.date===ymd(addDays(serviceDate(new Date()),1)));
+const jmaToday=()=>WJ&&WJ.max!=null&&(WJ.date===ymd(serviceDate(new Date()))||jmaTomorrow())?WJ:null;
+// 届いた予報は日付ごとに端末にも残す（毎晩の取得に失敗しても、前に取った今日・明日の分を使う）
+function pickWJ(d){let c={};try{c=JSON.parse(localStorage.getItem('wjc')||'{}')}catch(e){}
+  if(d&&d.date)c[d.date]=d;const t=ymd(serviceDate(new Date())),tm=ymd(addDays(serviceDate(new Date()),1));
+  Object.keys(c).forEach(k=>{if(k<t)delete c[k]});try{localStorage.setItem('wjc',JSON.stringify(c))}catch(e){}
+  const h=new Date().getHours();return (h>=18||h<4)?(c[tm]||c[t]||d):(c[t]||c[tm]||d)}
+const wxDay=()=>jmaTomorrow()?addDays(serviceDate(new Date()),1):serviceDate(new Date());
+const DAYW=()=>jmaTomorrow()?'明日':'今日';
 function manualFeel(){const f=ld('feel',null);return f&&f.date===ymd(serviceDate(new Date()))?f:null}
 /* 3時間ごとの予報から、任意の時刻の気温を直線でつないで求める */
 function getHourly(){
@@ -805,13 +814,13 @@ function getHourly(){
 /* その時刻にいる場所：大学に着いてから大学を出るまでは大学（茨木市）、それ以外は自宅周辺 */
 function whereAt(d){const G=getHourly(),sc=schedule();return G&&G.Hc&&sc&&d>=sc.arrive&&d<=sc.out?'campus':'home'}
 function tempAt(d,where){const G=getHourly();if(!G)return null;
-  const h=(d-serviceDate(new Date()))/3600000,H=(where||whereAt(d))==='campus'&&G.Hc?G.Hc:G.H;
+  const h=(d-wxDay())/3600000,H=(where||whereAt(d))==='campus'&&G.Hc?G.Hc:G.H;
   if(h<=H[0].h)return H[0].temp;for(let i=1;i<H.length;i++)if(h<=H[i].h){const a=H[i-1],b=H[i];return a.temp+(b.temp-a.temp)*(h-a.h)/(b.h-a.h)}
   return H[H.length-1].temp}
 /* 今日の予定：家を出る→授業→帰宅。大学の経路と時間割から求める */
 let schMemo={k:'',v:null};
 function schedule(){
-  const now=new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length+String(S.cal||'').length+WALKADD;if(schMemo.k===k)return schMemo.v;
+  const now=jmaTomorrow()?addMin(wxDay(),4*60):new Date(),k=ymd(now)+hm(now)+(S.routes.length)+JSON.stringify(S.classes).length+String(S.cal||'').length+WALKADD;if(schMemo.k===k)return schMemo.v;
   const v=schedule0(now);schMemo={k,v};return v}
 function schedule0(now){
   const cs=classesToday(now);if(!cs.length)return null;
@@ -827,7 +836,7 @@ function schedule0(now){
 }
 function daySpan(){ // 予定（家を出る〜帰宅）の気温と降水確率
   {const G=getHourly();
-    if(G){const sc=schedule(),svc=serviceDate(new Date());
+    if(G){const sc=schedule(),svc=wxDay();
       const a=sc?sc.leave:addMin(svc,8*60),b=sc?sc.out:addMin(svc,18*60);
       const ts=[];for(let t=+a;t<=+b;t+=1800000)ts.push(tempAt(new Date(t)));
       const tl=tempAt(a,'home'),tb=tempAt(b,sc?'campus':'home');
@@ -846,7 +855,7 @@ function drawWeather(){
       if(G&&G.Hc){const hs=G.Hc.filter(x=>x.h>=6&&x.h<=21).map(x=>x.temp),ds=G.Hc.filter(x=>x.delta!=null&&x.h>=6&&x.h<=21).map(x=>x.delta);
         const dv=ds.length?ds.reduce((a,b)=>a+b,0)/ds.length:0;
         ib=`<div class="sm">茨木市（大学）${Math.round(Math.min(...hs))}〜${Math.round(Math.max(...hs))}℃${Math.abs(dv)>=0.3?`・大阪市より約${Math.abs(dv).toFixed(1)}℃${dv<0?'低い':'高い'}`:'・大阪市とほぼ同じ'}</div>`}
-      el.innerHTML=`<h2>天気・${esc(j.place)}（気象庁）</h2><div class="big">${j.max}<small>℃ 最高</small></div><div class="sm">${esc(j.weather)}</div><div class="sm">最低 ${j.min}℃・日中の降水 ${j.pop}%</div>${ib}`;return}
+      el.innerHTML=`<h2>${jmaTomorrow()?'明日の':''}天気・${esc(j.place)}（気象庁）</h2><div class="big">${j.max}<small>℃ 最高</small></div><div class="sm">${esc(j.weather)}</div><div class="sm">最低 ${j.min}℃・日中の降水 ${j.pop}%</div>${ib}`;return}
     const f=manualFeel()||{};
     el.innerHTML=`<h2>今日の体感</h2><p class="sm">天気を自動で取得できないので、<a href="https://tenki.jp/" target="_blank" rel="noopener">天気予報</a>を見て選んでください。</p>
      <div class="feel">${FEELS.map(([n,t])=>`<button data-feel="${t}" aria-pressed="${f.t===t}">${n}</button>`).join('')}<button data-rain="1" aria-pressed="${!!f.rain}">雨の予報</button></div>`;return}
@@ -879,7 +888,7 @@ function pick(items,want,seed){
 }
 function drawWear(){
   const el=$('wear');
-  const d=daySpan(),seed=hash(ymd(serviceDate(new Date())));
+  const d=daySpan(),seed=hash(ymd(wxDay()));
   if(!d){WEAR_TXT='';drawMini();el.innerHTML='<h2>今日の服</h2><p class="sm">今日の体感を選ぶと、持っている服から選びます。</p>';return}
   const tw=d.avg>=25?1:d.avg>=20?2:d.avg>=15?3:d.avg>=10?4:4;
   const bw=d.avg>=25?1:d.avg>=18?2:d.avg>=10?3:4;
@@ -893,8 +902,8 @@ function drawWear(){
   const G2=getHourly(),two=G2&&G2.Hc;
   const why=d.sched?`<p class="sm">出発 ${hm(d.sched.leave)}${two?' 大阪市':''} 約${Math.round(d.tl)}℃・大学を出る ${hm(d.sched.out)}${two?' 茨木市':''} 約${Math.round(d.tb)}℃で選んでいます</p>`:'';
   const today=ymd(serviceDate(new Date())),picked=[top&&top.name,out&&out.name].filter(Boolean),worn=(S.worn||{})[today];
-  const wbtn=picked.length?(worn?`<p class="sm wornok">今日はこれを着る</p>`:`<button class="act sub small" id="wearbtn">これを着る</button>`):'';
-  el.innerHTML=`<h2>今日の服</h2><p class="feelx">${feel}</p>${why}<div class="wear">${top?`<div><span>上</span>${esc(top.name)}</div>`:''}${bot?`<div><span>下</span>${esc(bot.name)}</div>`:''}${out?`<div><span>外</span>${esc(out.name)}</div>`:needOuter?'':'<div><span>外</span>なしでOK</div>'}</div>${wbtn}`
+  const wbtn=jmaTomorrow()?'':picked.length?(worn?`<p class="sm wornok">今日はこれを着る</p>`:`<button class="act sub small" id="wearbtn">これを着る</button>`):'';
+  el.innerHTML=`<h2>${DAYW()}の服</h2><p class="feelx">${feel}</p>${why}<div class="wear">${top?`<div><span>上</span>${esc(top.name)}</div>`:''}${bot?`<div><span>下</span>${esc(bot.name)}</div>`:''}${out?`<div><span>外</span>${esc(out.name)}</div>`:needOuter?'':'<div><span>外</span>なしでOK</div>'}</div>${wbtn}`
     +(top||bot?'':'<p class="sm">設定の「持っている服」を入れてください。</p>')+tags.join(' ');
 }
 
@@ -1019,7 +1028,7 @@ $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday',
   const uid=await user.id();if(!uid)return;
   DOC=db.doc('data/users/'+uid+'/settings');
   if(DIST)db.doc('weather/all').get().then(w=>{if(w.exists){WALL=w.data();pickJma();drawJmaSel();drawWeather();drawWear();drawMini()}}).catch(()=>{});
-  else db.doc('weather/forecast').get().then(w=>{if(w.exists){WJ=w.data();if(WJ.warnings&&WJ.warnings.date===ymd(serviceDate(new Date())))WARN=WJ.warnings;drawWeather();drawWear();drawMini();drawClasses();drawTrend();drawAlerts();lastKey='';render()}}).catch(()=>{});
+  else db.doc('weather/forecast').get().then(w=>{if(w.exists){WJ=pickWJ(w.data());if(WJ.warnings&&WJ.warnings.date===ymd(serviceDate(new Date())))WARN=WJ.warnings;drawWeather();drawWear();drawMini();drawClasses();drawTrend();drawAlerts();lastKey='';render()}}).catch(()=>{});
   db.doc('traffic/now').get().then(w=>{if(w.exists){TRAFFIC=w.data();drawAlerts();lastKey='';render()}}).catch(()=>{});
   const snap=await DOC.get();
   if(snap.exists){const o=snap.data()||{};if(o.json&&(o.at||0)>ld('noriba3at',0)){S=Object.assign(sample(),JSON.parse(o.json));sv('noriba3',S);sv('noriba3at',o.at);fillStatic();destI=null;drawDest();lastKey='';refreshAll()}}
