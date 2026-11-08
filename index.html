@@ -865,11 +865,20 @@ function songOf(line){
   const sp=txt.match(/^(.*)\s+[-–—]\s+(.+)$/),[title,artist]=txt?(sp?[sp[1],sp[2]]:[txt,'']):['今日の1曲','Spotify の曲'];
   return {title,artist,app,web,sec,tr:!!tr};
 }
+// 同じ曲（曲名とアーティストが同じ）は1つにまとめる
+function uniqSongs(list){const seen=new Set();return list.map(songOf).filter(x=>{const k=(x.title+'|'+x.artist).toLowerCase().replace(/\s+/g,'');if(seen.has(k))return false;seen.add(k);return true})}
+function shuffled(arr,seed){const a=arr.slice();let t=seed>>>0;const rnd=()=>{t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return ((r^r>>>14)>>>0)/4294967296};
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// 今日の1曲を先頭に、そのあとは続きに使う曲（今日の曲を除く）
+function songOrder(list){const U=uniqSongs(list),n=U.length;if(!n)return [];
+  // 決まった順番（シャッフル済み）を1日1曲ずつ進む。どの曲も、ほかの全曲が流れるまで二度と出ない
+  const d=Math.round((serviceDate(new Date())-new Date(2026,0,1))/86400000),p=shuffled(U,hash('noriba-song')),today=p[((d%n)+n)%n];
+  const rest=shuffled(U.filter(x=>x!==today),hash('noriba-more-'+d));return [today].concat(rest)}
 function drawSong(){
   const list=String(S.songs||'').split(/\n/).map(s=>s.trim()).filter(Boolean),el=$('song');
   if(!list.length){el.innerHTML='<h2>今日の1曲</h2><p class="sm">設定の「今日の1曲」に曲を入れると、毎日1曲選びます。</p>';return}
-  // 日付で決まる順番に並べ、1曲目が今日の1曲。通学時間ぶん続けて選ぶ
-  const seed=hash(ymd(serviceDate(new Date()))),order=list.map((x,i)=>[hash(seed+':'+i),x]).sort((a,b)=>a[0]-b[0]).map(x=>songOf(x[1]));
+  // 毎日1曲ずつ順番に進む。全曲を1周するまで同じ曲は出ない。通学時間ぶん続けて選ぶ
+  const order=songOrder(list);
   const P=cur&&cur.p,trip=P?Math.round((P.arrive-P.leave)/60000):0,more=[];let sum=order[0].sec||0;
   if(trip>0&&order[0].sec)for(let i=1;i<order.length&&sum<trip*60;i++){if(!order[i].sec)continue;more.push(order[i]);sum+=order[i].sec}
   const s=order[0];
