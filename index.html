@@ -103,6 +103,7 @@ h1{font-size:18px;margin:0;letter-spacing:.08em}
 
 /* お知らせ（遅延・警報・雨）。何もない日は出さない */
 .alerts{display:grid;gap:6px}
+a.al{display:block;color:inherit;text-decoration:none}
 .al{font-size:13px;line-height:1.45;padding:7px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sub)}
 .al.bad{border-left-color:var(--bad);font-weight:700}
 .al.warn{border-left-color:var(--warn)}
@@ -134,6 +135,7 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .tabbar button{border:0;background:none;color:var(--sub);display:grid;justify-items:center;gap:1px;font-size:12px;padding:4px 0;border-radius:8px}
 .tabbar svg{width:22px;height:22px}
 .tabbar button[aria-current="page"]{color:var(--ink);font-weight:700;background:var(--bg)}
+.night{display:grid;gap:6px;margin:10px 0 8px;font-size:14px}.nrow span{display:inline-block;min-width:3em;opacity:.7;font-size:12px}
 .exnote{border:1px dashed var(--warn);background:var(--surface);color:var(--warn);border-radius:8px;padding:2px 12px;font-size:12px;text-align:left}
 .mini{display:flex;flex-wrap:nowrap;gap:12px;white-space:nowrap;overflow:hidden;align-items:baseline;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:14px}
 .mini b{font-variant-numeric:tabular-nums}
@@ -289,6 +291,10 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
 
 <p class="sh">通学<span>入力すると自動で保存されます</span></p>
 <details id="s-route"><summary>経路と時刻表</summary><div class="pane" id="routeedit"></div></details>
+<details id="s-pass"><summary>定期</summary><div class="pane">
+  <p class="hint">定期が切れる日を入れると、2週間前から朝のページに「定期の更新」を出します。</p>
+  <label class="f">定期が切れる日<input type="date" id="passend"></label>
+</div></details>
 <details id="s-cal"><summary>学年暦（休み・振替・休講）</summary><div class="pane">
   <p class="hint">1行に1つ。日付は「月/日」、期間は「月/日-月/日」。書いた日は時間割より優先します。</p>
   <pre class="ex">12/24-1/7 休み
@@ -334,6 +340,7 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
 <p class="sh">そのほか</p>
 <details id="s-log"><summary>最近の記録</summary><div class="pane" id="logbox"></div></details>
 <details id="s-widget"><summary>ウィジェット・バックアップ</summary><div class="pane">
+  <div id="unlock2" hidden><div class="row"><input type="password" id="unlockpw2" placeholder="合言葉" autocomplete="off" autocapitalize="off" style="flex:1;min-width:0"><button class="act sub" id="unlockbtn2">合言葉で読み込み直す</button></div><p class="hint" id="unlockmsg2">用意された最新の設定を読み込みます。記録（徒歩の実測・着た服・定期の日付）はそのまま残ります。</p></div>
   <p class="hint">iPhone のウィジェットは無料アプリ「Scriptable」で動きます。はじめは「ウィジェット用スクリプトをコピー」を押し、Scriptable で「のりば」という名前のスクリプトを作って貼り付けます。2回目からは「ウィジェットに送る」を押すだけで、設定が Scriptable に渡ります（貼り直し不要）。ウィジェットは出発の10分前・5分前に通知し、JR の遅れも直接確認します。</p>
   <div class="row"><button class="act" id="sendw">ウィジェットに送る</button><button class="act sub" id="copyw">ウィジェット用スクリプトをコピー</button><button class="act sub" id="copycfg">設定だけコピー</button></div>
   <p class="hint" id="copymsg" role="status"></p>
@@ -544,6 +551,35 @@ async function loadWarnDirect(){try{
   const out={};let at='';
   for(const [o,want] of Object.entries(by)){const r=await fetch(`https://www.jma.go.jp/bosai/warning/data/warning/${o}.json`);if(r.ok){const w=warnFromJma(await r.json(),want);Object.assign(out,w.areas);at=w.at}}
   WARN={at,areas:out};drawAlerts()}catch(e){}}
+/* ---------- 定期の期限 ---------- */
+function passChips(){if(!/^\d{4}-\d{2}-\d{2}$/.test(S.passEnd||''))return [];
+  const [y,m,d]=S.passEnd.split('-').map(Number),end=new Date(y,m-1,d),days=Math.round((end-serviceDate(new Date()))/86400000),md=`${m}/${d}`;
+  if(days>14||days<-7)return [];
+  if(days<0)return [{lv:'bad',t:`定期が切れています（${md}まで）`}];
+  return [{lv:days<=3?'bad':'warn',t:days===0?`定期は今日（${md}）まで。更新を忘れずに`:`定期はあと${days}日（${md}まで）。更新を忘れずに`}]}
+
+/* ---------- 帰りの雨（1時間ごとの降水確率があるとき：サイト版） ---------- */
+function popAt(d){if(!W||!W.hourly||!W.hourly.precipitation_probability)return null;
+  const k=ymd(d)+'T'+pad(d.getHours())+':00',i=W.hourly.time.indexOf(k);return i<0?null:W.hourly.precipitation_probability[i]}
+function rainBetween(a,b){let mx=null;for(let t=+a;t<=+b;t+=3600000){const v=popAt(new Date(t));if(v!=null)mx=Math.max(mx??0,v)}return mx}
+function rainBackOf(sc){if(!sc)return null;const back=rainBetween(sc.out,sc.home),go=rainBetween(sc.leave,sc.arrive);
+  return back!=null&&back>=50&&(go==null||go<50)?{back,from:sc.out}:null}
+function rainBackChips(){const now=new Date(),sc=schedule();if(wxTm()||!sc||now>sc.out)return [];
+  const r=rainBackOf(sc);return r?[{lv:'warn',t:`帰り（${hm(r.from)}ごろ）は雨の予報（${r.back}%）。傘を持って出る`}]:[]}
+
+/* ---------- 終電（出かけた先から家へ） ---------- */
+// 今日どこかへ出かけていて、そこから家へ帰る行き方（kind:'back' かつ origin がその行き先）があれば、その名前を返す
+function outAt(){const t=ld('trip',null),today=ymd(serviceDate(new Date()));
+  if(!t||t.date!==today||!t.name)return null;const R=S.routes[t.ri];if(R&&R.kind==='back')return null;
+  return S.routes.some(r=>r.kind==='back'&&r.origin===t.name&&r.legs.length)?t.name:null}
+function lastHome(origin){const now=new Date(),end=addMin(addDays(serviceDate(now),1),4*60);let best=null;
+  S.routes.filter(r=>r.kind==='back'&&r.origin===origin&&r.legs.length).forEach(r=>{const P=plan(r,now);
+    (P&&P.plans||[]).filter(p=>p.dep1<end).forEach(p=>{if(!best||p.leave>best.p.leave)best={r,p}})});return best}
+function lastTrainChips(){const now=new Date();if(now.getHours()<19&&now.getHours()>=4)return [];
+  const base=S.routes[destI],o=outAt()||(base&&base.kind==='back'&&base.origin&&!S.routes.some(r=>r.target==='class'&&r.name===base.origin)?base.origin:null);if(!o)return [];
+  const L=lastHome(o);if(!L)return [];const m=Math.round((L.p.leave-now)/60000);if(m>60)return [];
+  return [{lv:m<=15?'bad':'warn',t:m<0?`${o}からの終電に間に合わない時間です`:`終電まであと${m}分：${hm(L.p.leave)}に${o}を出る（${viaOf(L.r)}・${hm(L.p.arrive)}家着）`}]}
+
 /* ---------- ゴミの日 ---------- */
 const DOW='日月火水木金土';
 // 1行ずつ読む。名前と曜日の順番・区切り（空白、：、・）は問わない。例：「月：プラスチック資源（12:00〜14:00）」「普通ごみ 火・金 午後」
@@ -580,16 +616,21 @@ function drawAlerts(){
     used.forEach(k=>{const v=T.lines[k]||{};
       const how=mine.includes(k)?(cur&&cur.tg?'。10分早めに着く計画にしています':''):'。この路線を使わない行き方にしています';
       chips.push({lv:'bad',t:`${LINENAME[k]||k}：${v.text||v.status||'遅れ・運転見合わせの情報'}${v.cause?'（'+v.cause+'）':''}${how}`})})}
+  if(T&&T.lines&&curRoute&&delayedLines(curRoute).length)chips.push({lv:'info',t:'遅延証明書（JR西日本）を開く',href:'https://delay.trafficinfo.westjr.co.jp/'});
+  lastTrainChips().forEach(c=>chips.push(c));
   gomiChips().forEach(c=>chips.push(c));
+  rainBackChips().forEach(c=>chips.push(c));
+  passChips().forEach(c=>chips.push(c));
   if(WALKADD)chips.push({lv:'info',t:`雨の予報のため、徒歩を${WALKADD}分長めに計算しています`});
-  el.hidden=!chips.length;el.innerHTML=chips.map(c=>`<div class="al ${c.lv}">${esc(c.t)}</div>`).join('');
+  el.hidden=!chips.length;el.innerHTML=chips.map(c=>c.href?`<a class="al ${c.lv}" href="${esc(c.href)}" target="_blank" rel="noopener">${esc(c.t)} ›</a>`:`<div class="al ${c.lv}">${esc(c.t)}</div>`).join('');
 }
 
 /* ---------- 描画 ---------- */
 let lastKey='',cur=null;
 let destManual=false;
 function autoDest(){
-  const now=new Date(),cs=classesToday(now),bi=S.routes.findIndex(r=>r.kind==='back'&&r.legs.length);
+  const now=new Date(),cs=classesToday(now),ci0=S.routes.find(r=>r.target==='class'&&r.kind!=='back'),bi0=S.routes.findIndex(r=>r.kind==='back'&&r.legs.length&&ci0&&r.origin===ci0.name),bi=bi0>=0?bi0:S.routes.findIndex(r=>r.kind==='back'&&r.legs.length);
+  const oa=outAt();if(oa&&now.getHours()>=17){const k=S.routes.findIndex(r=>r.kind==='back'&&r.origin===oa&&r.legs.length);if(k>=0)return k}
   if(cs.length&&bi>=0){const last=cs[cs.length-1];if(now>=addMin(last.end,-20)&&now<=addMin(last.end,300))return bi}
   const ci=S.routes.findIndex(r=>r.target==='class'&&r.legs.length&&r.kind!=='back');
   if(ci>=0&&cs.some(c=>c.start>now))return ci;
@@ -629,8 +670,31 @@ function bestPlan(name,now){
   return {best:alts[0],alts};
 }
 let curAlts=[],curRoute=null;
+// 夜（20時〜翌4時）は、出かけていなければ朝のページを「明日のまとめ」にする（行き先を押すと今の電車）
+let nightOffAt=0,manualAt=0;const recent=t=>Date.now()-t<60*60000;
+const nightMode=()=>{const h=new Date().getHours();return (h>=20||h<4)&&!recent(manualAt)&&!recent(nightOffAt)&&!outAt()&&!S.example};
+function drawNight(){
+  const now=new Date(),td=addDays(serviceDate(now),1),sc=schedule0(addMin(td,4*60)),h=$('hero');
+  const wd='日月火水木金土'[td.getDay()],rows=[];
+  if(sc){const c=sc.cs[0];rows.push(`<div class="nrow"><span>授業</span>${c.p}限 ${hm(c.start)} ${esc(c.name.replace(/（[^）]*）$/,''))}${sc.cs.length>1?` ほか${sc.cs.length-1}コマ`:''}</div>`)}
+  else rows.push(`<div class="nrow"><span>授業</span>なし</div>`);
+  if(wxTm()){const d=daySpan();if(d)rows.push(`<div class="nrow"><span>天気</span>${d.dayMin??Math.round(d.min)}〜${d.dayMax??Math.round(d.max)}℃・降水${d.rain}%${WEAR_TXT?`<br><span>服</span>${esc(WEAR_TXT)}`:''}</div>`);
+    const rb=rainBackOf(sc);if(rb)rows.push(`<div class="nrow"><span>雨</span>帰り（${hm(rb.from)}ごろ）は雨の予報。傘を持って出る</div>`)}
+  else rows.push(`<div class="nrow"><span>天気</span>明日の予報はこのあと届きます</div>`);
+  const g=gomiOn(td);if(g.length)rows.push(`<div class="nrow"><span>ゴミ</span>${esc(gomiTxt(g))}</div>`);
+  h.dataset.s='info';
+  h.innerHTML=`<div class="top"><span class="lv">明日のまとめ</span><span class="goal">${td.getMonth()+1}/${td.getDate()}（${wd}）</span></div>
+    ${sc?`<div class="labrow"><span class="lab">家を出る</span></div><div class="cd">${hm(sc.leave)}</div><div class="msg">${hm(sc.arrive)} ${esc(sc.name)}着（${sc.cs[0].p}限の${Math.round((sc.cs[0].start-sc.arrive)/60000)}分前）</div>`:''}
+    <div class="night">${rows.join('')}</div>
+    <button class="tb" id="nownow">今の電車を見る</button>`;
+  $('steps').hidden=true;$('board').hidden=true;
+  $('nownow').onclick=()=>{nightOffAt=Date.now();lastKey='';render()};
+}
 function render(){
   const now=new Date(),base=S.routes[destI];
+  if(nightMode()){$('example').hidden=!S.example;$('exnote').hidden=!S.example;const k='night'+ymd(now)+(wxTm()?1:0)+WEAR_TXT+String(S.gomi).length;
+    if(k!==lastKey){lastKey=k;drawNight()}$('clock').textContent=now.toLocaleTimeString('ja-JP',{hour12:false});return}
+  $('steps').hidden=false;$('board').hidden=false;
   $('example').hidden=!S.example;$('exnote').hidden=!S.example;
   const d0=daySpan();WALKADD=d0&&d0.rain>=50?2:0;
   const B=base?bestPlan(base.name,now):null,route=B?B.best.r:base,P=B?B.best.P:plan(base,now);cur=P;curAlts=B?B.alts:[];curRoute=route;
@@ -852,7 +916,7 @@ function pickWJ(d){let c={};try{c=JSON.parse(localStorage.getItem('wjc')||'{}')}
   if(d&&d.date)c[d.date]=d;const t=ymd(serviceDate(new Date())),tm=ymd(addDays(serviceDate(new Date()),1));
   Object.keys(c).forEach(k=>{if(k<t)delete c[k]});try{localStorage.setItem('wjc',JSON.stringify(c))}catch(e){}
   const h=new Date().getHours();return (h>=18||h<4)?(c[tm]||c[t]||d):(c[t]||c[tm]||d)}
-const nightNow=()=>{const h=new Date().getHours();return h>=21||h<4};
+const nightNow=()=>{const h=new Date().getHours();return h>=20||h<4};
 const wxTm=()=>jmaToday()?jmaTomorrow():!!(W&&W.hourly&&nightNow());
 const wxDay=()=>wxTm()?addDays(serviceDate(new Date()),1):serviceDate(new Date());
 const DAYW=()=>wxTm()?'明日':'今日';
@@ -1035,6 +1099,7 @@ $('classedit').addEventListener('click',e=>{const d=e.target.dataset.cd;if(!d)re
 function gomiMsg(){const g=parseGomi(S.gomi);
   const bad=gomiLines(S.gomi).filter(l=>!parseGomiLine(l));
   $('gomimsg').textContent=(bad.length?`読み取れない行：${bad.join('、')}（名前と曜日を入れてください）　`:'')+(g.length?'読み取り：':'')+(g.length?g.map(x=>x.name+'：'+x.rules.map(r=>(r.nth?'第'+r.nth.join('・'):'毎週')+DOW[r.dow]).join('、')+(x.time?' '+x.time:'')).join('／'):'');}
+$('passend').addEventListener('change',()=>{S.passEnd=$('passend').value;changed();drawAlerts()});
 $('gomi').addEventListener('input',()=>{S.gomi=$('gomi').value;gomiMsg();changed();drawAlerts()});
 $('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(drawClasses,450)});
 $('songs').addEventListener('input',()=>{S.songs=$('songs').value;changed()});
@@ -1051,7 +1116,7 @@ $('placebtn').onclick=placeSearch('place');$('placebtn2').onclick=placeSearch('p
 const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name;
   $('placecur2').innerHTML=S.place2?`学校の場所：${esc(S.place2.name)} <button class="act sub small" id="place2x">外す</button>`:'学校の場所：なし';
   if($('place2x'))$('place2x').onclick=async()=>{delete S.place2;save();drawPlace();await loadWeather(true);refreshAll();if(SITE)loadWarnDirect()}}
-function fillStatic(){$('cal').value=S.cal||'';$('gomi').value=S.gomi||'';gomiMsg();$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
+function fillStatic(){$('cal').value=S.cal||'';$('passend').value=S.passEnd||'';$('gomi').value=S.gomi||'';gomiMsg();$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
 
 /* ウィジェット用の書き出し・読み込み */
 let WJS='';fetch('widget.js').then(r=>r.ok?r.text():'').then(t=>WJS=t).catch(()=>{});
@@ -1085,7 +1150,7 @@ $('mini').onclick=()=>go('today');
 $('exnote').onclick=()=>go('setup');
 addEventListener('hashchange',()=>go(location.hash.slice(1),false));
 $('jmaoff').addEventListener('change',onJma);$('jmapt').addEventListener('change',onJma);
-$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;destManual=true;sv('destI',destI);drawDest();render()};
+$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;destManual=true;manualAt=Date.now();sv('destI',destI);drawDest();render()};
 $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday','holiday'],f=ld('dayForce',null);
   try{localStorage.removeItem('dayForce')}catch(e){}const auto=dayType(svc);
   const curT=f&&f.date===ymd(svc)?f.type:auto,next=o[(o.indexOf(curT)+1)%3];
@@ -1116,15 +1181,21 @@ const SITE=!(window.claude&&window.claude.use);
 // 合言葉で開ける設定（me.enc.json：PBKDF2＋AES-GCM で暗号化。合言葉がないと読めない）
 let ENC=null;
 async function initUnlock(){if(!SITE||location.protocol!=='https:'||!(window.crypto&&crypto.subtle))return;
-  try{const r=await fetch('me.enc.json',{cache:'no-store'});if(!r.ok)return;ENC=await r.json();$('unlock').hidden=false}catch(e){}}
+  try{const r=await fetch('me.enc.json',{cache:'no-store'});if(!r.ok)return;ENC=await r.json();$('unlock').hidden=false;$('unlock2').hidden=false}catch(e){}}
 const b64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
-$('unlockbtn').onclick=async()=>{const pw=$('unlockpw').value.trim();if(!pw||!ENC)return;$('unlockmsg').textContent='読み込み中…';
+async function unlockWith(pw,msg,keep){if(!pw||!ENC)return;$(msg).textContent='読み込み中…';
   try{const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
     const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(ENC.salt),iterations:ENC.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
     const o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(ENC.iv)},key,b64(ENC.data))));if(!o.routes)throw 0;
-    S=Object.assign(sample(),o);S.example=false;save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();go('morning');
-    loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});loadWarnDirect();
-  }catch(e){$('unlockmsg').textContent='合言葉が違います。もう一度入れてください。'}};
+    const old=S;S=Object.assign(sample(),o);S.example=false;
+    if(keep){['log','worn','passEnd'].forEach(k=>{if(old[k]!=null)S[k]=old[k]});
+      // 徒歩の実測で直した見積もりは、同じ行き方なら残す
+      S.routes.forEach(r=>{const m=(old.routes||[]).find(x=>x.name===r.name&&(x.via||'')===(r.via||''));if(m){r.home=m.home;r.last=m.last}})}
+    save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();$(msg).textContent='読み込みました';if(!keep)go('morning');
+    loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend();lastKey='';render()});loadWarnDirect();
+  }catch(e){$(msg).textContent='合言葉が違います。もう一度入れてください。'}}
+$('unlockbtn').onclick=()=>unlockWith($('unlockpw').value.trim(),'unlockmsg',false);
+$('unlockbtn2').onclick=()=>unlockWith($('unlockpw2').value.trim(),'unlockmsg2',true);
 initUnlock();
 let APPV=null;const swVer=async()=>{try{const t=await (await fetch('sw.js',{cache:'no-store'})).text();return (t.match(/const V='([^']+)'/)||[])[1]||null}catch(e){return null}};
 if(SITE&&location.protocol==='https:'){swVer().then(v=>APPV=v);
@@ -1132,7 +1203,7 @@ if(SITE&&location.protocol==='https:'){swVer().then(v=>APPV=v);
 // サイト版：JR西日本の運行情報は、GitHub が10分ごとに取ってきた traffic.json を読む（ブラウザからは直接読めないため）
 async function loadTrafficSite(){if(!SITE||location.protocol!=='https:')return;try{const r=await fetch('traffic.json?t='+Date.now(),{cache:'no-store'});if(r.ok){TRAFFIC=await r.json();drawAlerts();lastKey='';render()}}catch(e){}}
 if(SITE){loadWarnDirect();loadTrafficSite();setInterval(loadTrafficSite,5*60000)} // サイト版は気象庁の警報を直接取る
-loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});
+loadWeather().then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend();lastKey="";render()});
 setInterval(()=>{tickCd();if(new Date().getSeconds()===0){
   if(!destManual){const a=autoDest();if(S.routes[a]&&S.routes[destI]&&S.routes[a].name!==S.routes[destI].name){destI=a;drawDest();lastKey=''}}
   drawDay();render();drawClasses();drawAlerts()}},1000);

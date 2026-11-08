@@ -1,5 +1,5 @@
 // アプリ本体をキャッシュし、電波が弱くても開けるようにする（APIの通信はキャッシュしない）
-const V='noriba-v13';
+const V='noriba-v14';
 const SHELL=['./','index.html','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-180.png','widget.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
