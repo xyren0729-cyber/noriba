@@ -548,7 +548,7 @@ async function loadWarnDirect(){try{
 const DOW='日月火水木金土';
 // 1行ずつ読む。名前と曜日の順番・区切り（空白、：、・）は問わない。例：「月：プラスチック資源（12:00〜14:00）」「普通ごみ 火・金 午後」
 function parseGomiLine(l){
-  let t=String(l).replace(/[０-９：～]/g,c=>c==='～'?'〜':String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/毎週|毎/g,' ');
+  let t=String(l).replace(/\t/g,' ').replace(/^\s*(?:[•●◦‣・\-*＊]|\d+[.)．])\s*/,'').replace(/[０-９：～]/g,c=>c==='～'?'〜':String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/毎週|毎/g,' ');
   // 収集の時間（任意）：「8:30〜10:30」「午前」「午後」。この時間が終わるまで表示する
   let time='',until=12*60;const tm=t.match(/(\d{1,2}):(\d{2})\s*[〜~\-－]\s*(\d{1,2}):(\d{2})/);
   if(tm){time=`${+tm[1]}:${tm[2]}〜${+tm[3]}:${tm[4]}`;until=+tm[3]*60+ +tm[4];t=t.replace(tm[0],' ')}
@@ -560,7 +560,7 @@ function parseGomiLine(l){
   while((m=re.exec(t))){const pv=t[m.index-1],nx=t[m.index+m[0].length];if(letter(pv)||letter(nx))continue;
     rules.push({dow:DOW.indexOf(m[2]),nth:m[1]?m[1].match(/[1-5]/g).map(Number):null});cut.push([m.index,m.index+m[0].length])}
   for(let i=cut.length-1;i>=0;i--)t=t.slice(0,cut[i][0])+' '+t.slice(cut[i][1]);
-  const name=t.replace(/[（(]\s*[)）]/g,' ').replace(/[：:]/g,' ').replace(/^[\s・、,／/]+|[\s・、,／/]+$/g,'').replace(/\s+/g,' ').trim();
+  const name=t.replace(/[（(]\s*[)）]/g,' ').replace(/[：:]/g,' ').replace(/^[\s・•、,／/]+|[\s・•、,／/]+$/g,'').replace(/\s+/g,' ').trim();
   return rules.length&&name?{name,rules,time,until}:null}
 const gomiLines=text=>String(text||'').split(/\n/).map(l=>l.trim()).filter(Boolean);
 function parseGomi(text){return gomiLines(text).map(parseGomiLine).filter(Boolean)}
@@ -1126,6 +1126,9 @@ $('unlockbtn').onclick=async()=>{const pw=$('unlockpw').value.trim();if(!pw||!EN
     loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend()});loadWarnDirect();
   }catch(e){$('unlockmsg').textContent='合言葉が違います。もう一度入れてください。'}};
 initUnlock();
+let APPV=null;const swVer=async()=>{try{const t=await (await fetch('sw.js',{cache:'no-store'})).text();return (t.match(/const V='([^']+)'/)||[])[1]||null}catch(e){return null}};
+if(SITE&&location.protocol==='https:'){swVer().then(v=>APPV=v);
+  document.addEventListener('visibilitychange',async()=>{if(document.hidden||!APPV)return;const v=await swVer();if(v&&v!==APPV)location.reload()})}
 // サイト版：JR西日本の運行情報は、GitHub が10分ごとに取ってきた traffic.json を読む（ブラウザからは直接読めないため）
 async function loadTrafficSite(){if(!SITE||location.protocol!=='https:')return;try{const r=await fetch('traffic.json?t='+Date.now(),{cache:'no-store'});if(r.ok){TRAFFIC=await r.json();drawAlerts();lastKey='';render()}}catch(e){}}
 if(SITE){loadWarnDirect();loadTrafficSite();setInterval(loadTrafficSite,5*60000)} // サイト版は気象庁の警報を直接取る
