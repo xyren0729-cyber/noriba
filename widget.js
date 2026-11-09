@@ -155,8 +155,8 @@ async function build() {
   alts.sort((a, b) => {
     const ok = q => !!(q.P.tg && q.P.s !== "late");
     if (tier(a) !== tier(b)) return tier(a) - tier(b);
-    if (a.P.tg || b.P.tg) { if (ok(a) !== ok(b)) return ok(a) ? -1 : 1; return ok(a) ? (b.P.p.leave - pen(b.x)) - (a.P.p.leave - pen(a.x)) : (a.P.p.arrive + pen(a.x)) - (b.P.p.arrive + pen(b.x)); }
-    return (a.P.p.arrive + pen(a.x) - b.P.p.arrive - pen(b.x)) || (b.P.p.leave - a.P.p.leave);
+    if (a.P.tg || b.P.tg) { if (ok(a) !== ok(b)) return ok(a) ? -1 : 1; return ok(a) ? (b.P.p.leave - pen(b.x)) - (a.P.p.leave - pen(a.x)) : (+a.P.p.arrive + pen(a.x)) - (+b.P.p.arrive + pen(b.x)); }
+    return (+a.P.p.arrive + pen(a.x) - b.P.p.arrive - pen(b.x)) || (b.P.p.leave - a.P.p.leave); // 時刻は数にしてから足す
   });
   if (alts.length) r = alts[0].x;
   const P = alts.length ? alts[0].P : plan(r, now);
