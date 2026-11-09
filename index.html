@@ -1189,25 +1189,31 @@ fillStatic();drawDest();sv('destI',destI);refreshAll();go(location.hash.slice(1)
 const SITE=!(window.claude&&window.claude.use);
 // 合言葉で開ける設定（me.enc.json：PBKDF2＋AES-GCM で暗号化。合言葉がないと読めない）
 let ENC=null;
+// 置いてある設定を毎回その場で取る（配信側の古い控えを避けるため、URL に時刻を付ける）
+async function fetchEnc(){try{const r=await fetch('me.enc.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return null;ENC=await r.json();return ENC}catch(e){return null}}
+// 一度合言葉で読み込んだ端末は、置いてある設定が新しくなったら自動で読み込み直す（記録は残す）
 async function initUnlock(){if(!SITE||location.protocol!=='https:'||!(window.crypto&&crypto.subtle))return;
-  try{const r=await fetch('me.enc.json',{cache:'no-store'});if(!r.ok)return;ENC=await r.json();$('unlock').hidden=false;$('unlock2').hidden=false}catch(e){}}
+  if(!await fetchEnc())return;$('unlock').hidden=false;$('unlock2').hidden=false;
+  const pw=ld('encpw',''),iv=ld('encIv','');if(pw&&ENC.iv!==iv&&!S.example)unlockWith(pw,'unlockmsg2',true,true)}
 const b64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
-async function unlockWith(pw,msg,keep){if(!pw||!ENC)return;$(msg).textContent='読み込み中…';
-  try{const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+async function unlockWith(pw,msg,keep,auto){if(!pw)return;$(msg).textContent='読み込み中…';
+  try{if(!auto)await fetchEnc();if(!ENC)throw 0;const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
     const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(ENC.salt),iterations:ENC.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
     const o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(ENC.iv)},key,b64(ENC.data))));if(!o.routes)throw 0;
     const old=S;S=Object.assign(sample(),o);S.example=false;
     if(keep){['log','worn','passEnd'].forEach(k=>{if(old[k]!=null)S[k]=old[k]});
       // 徒歩の実測で直した見積もりは、同じ行き方なら残す
       S.routes.forEach(r=>{const m=(old.routes||[]).find(x=>x.name===r.name&&(x.via||'')===(r.via||''));if(m){r.home=m.home;r.last=m.last}})}
-    save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();$(msg).textContent='読み込みました';if(!keep)go('morning');
+    sv('encpw',pw);sv('encIv',ENC.iv);
+    save();fillStatic();destI=null;drawDest();lastKey='';refreshAll();$(msg).textContent=auto?'用意された最新の設定に更新しました':'読み込みました';if(!keep)go('morning');
     loadWeather(true).then(()=>{drawWeather();drawWear();drawMini();drawClasses();drawTrend();lastKey='';render()});loadWarnDirect();
-  }catch(e){$(msg).textContent='合言葉が違います。もう一度入れてください。'}}
+  }catch(e){if(auto)return;$(msg).textContent='合言葉が違います。もう一度入れてください。'}}
 $('unlockbtn').onclick=()=>unlockWith($('unlockpw').value.trim(),'unlockmsg',false);
 $('unlockbtn2').onclick=()=>unlockWith($('unlockpw2').value.trim(),'unlockmsg2',true);
 initUnlock();
 let APPV=null;const swVer=async()=>{try{const t=await (await fetch('sw.js',{cache:'no-store'})).text();return (t.match(/const V='([^']+)'/)||[])[1]||null}catch(e){return null}};
 if(SITE&&location.protocol==='https:'){swVer().then(v=>APPV=v);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)initUnlock()});
   document.addEventListener('visibilitychange',async()=>{if(document.hidden||!APPV)return;const v=await swVer();if(v&&v!==APPV)location.reload()})}
 // サイト版：JR西日本の運行情報は、GitHub が10分ごとに取ってきた traffic.json を読む（ブラウザからは直接読めないため）
 async function loadTrafficSite(){if(!SITE||location.protocol!=='https:')return;try{const r=await fetch('traffic.json?t='+Date.now(),{cache:'no-store'});if(r.ok){TRAFFIC=await r.json();drawAlerts();lastKey='';render()}}catch(e){}}
