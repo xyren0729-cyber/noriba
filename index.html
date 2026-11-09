@@ -484,7 +484,9 @@ function plan(route,now){
   let from=new Date(now-10000);if(route.kind==='back'){const cs=classesToday(now);if(cs.length){const e=cs[cs.length-1].end;if(e>from)from=e}}
   const cands=firstDeps(route,now).filter(c=>addMin(c.dep,-homeWalk(route))>=from);
   const tg=target(route,now);
-  const plans=[];for(const c of cands.slice(0,80)){const p=chain(route,c.dep,c.day);if(p)plans.push(p)}
+  // 目標の時刻までに出る電車はすべて見る（本数の多い路線でも取りこぼさない）。目標がなければ先の80本
+  const upto=tg?cands.filter(c=>c.dep<=tg.time).length+20:80;
+  const plans=[];for(const c of cands.slice(0,Math.max(80,upto))){const p=chain(route,c.dep,c.day);if(p)plans.push(p)}
   if(!plans.length)return {none:true,tg};
   const earliest=plans[0];
   if(!tg)return {s:'info',p:earliest,tg,plans};

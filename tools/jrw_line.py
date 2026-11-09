@@ -14,6 +14,7 @@ def rows_of(lid):
         if r[0]: st = r[0]
         out.append((st, r[1], r[2:]))
     return types, out
+DWELL = {"新大阪": 1}  # 着の時刻が載っていない駅の停車時間（分）
 tm = lambda v: v if re.fullmatch(r"\d{2}:\d{2}", v or "") else None
 res = []
 for lid in ids:
@@ -23,7 +24,10 @@ for lid in ids:
     n = len(rs[0][2])
     for c in range(n):
         dep = next((tm(rs[i][2][c]) for i in ia if rs[i][1] == "発" and tm(rs[i][2][c])), None) or next((tm(rs[i][2][c]) for i in ia if tm(rs[i][2][c])), None)
-        arr = next((tm(rs[i][2][c]) for i in ib if rs[i][1] == "着" and tm(rs[i][2][c])), None) or next((tm(rs[i][2][c]) for i in ib if tm(rs[i][2][c])), None)
+        arr_in = next((tm(rs[i][2][c]) for i in ib if rs[i][1] == "着" and tm(rs[i][2][c])), None)
+        arr = arr_in or next((tm(rs[i][2][c]) for i in ib if tm(rs[i][2][c])), None)
+        if arr and not arr_in and B in DWELL:  # 発の時刻しかないときは、停車時間の分だけ早く着く
+            m0 = (int(arr[:2]) * 60 + int(arr[3:]) - DWELL[B]) % 1440; arr = f"{m0 // 60:02d}:{m0 % 60:02d}"
         if dep and arr and (types[c] if c < len(types) else "") != "特急":
             m = lambda t: int(t[:2]) * 60 + int(t[3:])
             ride = (m(arr) - m(dep)) % 1440
