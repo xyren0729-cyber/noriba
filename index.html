@@ -44,7 +44,7 @@
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);
-  padding-top:max(12px,env(safe-area-inset-top,0px));padding-bottom:max(28px,env(safe-area-inset-bottom,0px));
+  padding-top:calc(max(12px,env(safe-area-inset-top,0px)) + 16px);padding-bottom:max(28px,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:560px;margin:0 auto;display:grid;gap:10px}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -891,8 +891,9 @@ function songOf(line){
   const dm=txt.match(/\s(\d{1,2}):(\d{2})$/),sec=dm?+dm[1]*60+ +dm[2]:null;if(dm)txt=txt.slice(0,dm.index).trim();
   const tr=url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist)\/([A-Za-z0-9]+)/);
   const q=txt.replace(/\s+[-–—]\s+(?!.*\s[-–—]\s)/,' ');
-  const app=tr?`spotify:${tr[1]}:${tr[2]}`:url?url:'spotify:search:'+encodeURIComponent(q);
-  const web=tr?`https://open.spotify.com/${tr[1]}/${tr[2]}`:url?url:'https://open.spotify.com/search/'+encodeURIComponent(q);
+  const pl=String(S.playlist||'').match(/playlist\/([A-Za-z0-9]+)/),ctx=pl&&tr&&tr[1]==='track'?`?context=${encodeURIComponent('spotify:playlist:'+pl[1])}`:'';
+  const web=tr?`https://open.spotify.com/${tr[1]}/${tr[2]}${ctx}`:url?url:'https://open.spotify.com/search/'+encodeURIComponent(q);
+  const app=tr?`spotify:${tr[1]}:${tr[2]}${ctx}`:url?url:'spotify:search:'+encodeURIComponent(q);
   const sp=txt.match(/^(.*)\s+[-–—]\s+(.+)$/),[title,artist]=txt?(sp?[sp[1],sp[2]]:[txt,'']):['今日の1曲','Spotify の曲'];
   return {title,artist,app,web,sec,tr:!!tr};
 }
@@ -916,7 +917,7 @@ function drawSong(){
   el.innerHTML=`<h2>今日の1曲</h2><div class="song"><span class="disc" aria-hidden="true"></span><span><b>${esc(s.title)}</b><span class="sm">${esc(s.artist||'')}</span></span></div>
     <div class="row" style="font-size:13px"><a class="act" style="padding:5px 12px" href="${esc(s.app)}">Spotify アプリで開く</a><a class="act sub" style="padding:5px 12px" href="${esc(s.web)}" target="_blank" rel="noopener">リンクで開く</a></div>`
     +(more.length?`<details class="more"><summary>通学${trip}分に合わせた続きの${more.length}曲（合計${Math.round(sum/60)}分）</summary><ol class="songs">${more.map(m=>`<li><a href="${esc(m.app)}">${esc(m.title)}</a><span>${esc(m.artist)}</span></li>`).join('')}</ol></details>`:'')
-    +(S.playlist?`<a class="sm" href="${esc(S.playlist)}" target="_blank" rel="noopener">プレイリストを開く</a>`:'');
+    +(S.playlist?(()=>{const m=String(S.playlist).match(/playlist\/([A-Za-z0-9]+)/);return `<a class="sm" href="${esc(m?'spotify:playlist:'+m[1]:S.playlist)}">プレイリストを開く</a>`})():'');
 }
 
 /* ---------- 天気（Open-Meteo、登録不要） ---------- */
