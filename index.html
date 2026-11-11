@@ -346,7 +346,7 @@ label.f{display:grid;gap:3px;font-size:13px;color:var(--sub);min-width:0}
   <label class="f">地点<select id="jmapt"></select></label>
 </div></details>
 <p class="sh">そのほか</p>
-<details id="s-log"><summary>最近の記録</summary><div class="pane" id="logbox"></div></details>
+<details id="s-log"><summary>最近の記録</summary><div class="pane"><label class="f" style="display:flex;align-items:center;gap:.5em"><input type="checkbox" id="triplog">「家を出た」「着いた」ボタンを使う（押すと徒歩の時間を実際に合わせて直します）</label><div id="logbox"></div></div></details>
 <details id="s-widget"><summary>ウィジェット・バックアップ</summary><div class="pane">
   <div id="unlock2" hidden><div class="row"><input type="password" id="unlockpw2" placeholder="合言葉" autocomplete="off" autocapitalize="off" style="flex:1;min-width:0"><button class="act sub" id="unlockbtn2">合言葉で読み込み直す</button></div><p class="hint" id="unlockmsg2">用意された最新の設定を読み込みます。記録（徒歩の実測・着た服・定期の日付）はそのまま残ります。</p></div>
   <p class="hint">iPhone のウィジェットは無料アプリ「Scriptable」で動きます。はじめは「ウィジェット用スクリプトをコピー」を押し、Scriptable で「のりば」という名前のスクリプトを作って貼り付けます。2回目からは「ウィジェットに送る」を押すだけで、設定が Scriptable に渡ります（貼り直し不要）。ウィジェットは出発の10分前・5分前に通知し、JR の遅れも直接確認します。</p>
@@ -592,7 +592,9 @@ function rainBackChips(){const now=new Date(),sc=schedule();if(wxTm()||!sc||now>
 
 /* ---------- 終電（出かけた先から家へ） ---------- */
 // 今日どこかへ出かけていて、そこから家へ帰る行き方（kind:'back' かつ origin がその行き先）があれば、その名前を返す
-function outAt(){const t=ld('trip',null),today=ymd(serviceDate(new Date()));
+function outAt(){const today=ymd(serviceDate(new Date()));
+  // ボタンを使わない人は、その日に行き先（梅田など）を押したことで「出かけた」とみなす
+  const w=ld('went',null),t=S.tripLog?ld('trip',null):(w&&w.date===today?{date:today,name:w.name,ri:S.routes.findIndex(r=>r.name===w.name)}:null);
   if(!t||t.date!==today||!t.name)return null;const R=S.routes[t.ri];if(R&&R.kind==='back')return null;
   return S.routes.some(r=>r.kind==='back'&&r.origin===t.name&&r.legs.length)?t.name:null}
 function lastHome(origin){const now=new Date(),end=addMin(addDays(serviceDate(now),1),4*60);let best=null;
@@ -764,6 +766,7 @@ function drawHero(route,P,now){
 }
 /* 実際にかかった時間で、徒歩の見積もりを少しずつ直す。記録は振り返り（Obsidian の週の記録）にも使う */
 function tripButton(route,P){
+  if(!S.tripLog)return ''; // ボタンは設定で使うときだけ（ふだんは出さない）
   const t=ld('trip',null),today=ymd(serviceDate(new Date())),org=route.origin||'家';
   if(t&&t.date===today&&t.stage==='done')return `<div class="trip"><span>${esc(t.msg||'記録しました')}</span></div>`;
   if(t&&t.date===today&&t.stage==='left')return `<div class="trip"><button class="tb" data-trip="station">駅に着いた</button><span>出発 ${hm(new Date(t.leaveAt))}</span></div>`;
@@ -1141,6 +1144,7 @@ $('classedit').addEventListener('click',e=>{const d=e.target.dataset.cd;if(!d)re
 function gomiMsg(){const g=parseGomi(S.gomi);
   const bad=gomiLines(S.gomi).filter(l=>!parseGomiLine(l));
   $('gomimsg').textContent=(bad.length?`読み取れない行：${bad.join('、')}（名前と曜日を入れてください）　`:'')+(g.length?'読み取り：':'')+(g.length?g.map(x=>x.name+'：'+x.rules.map(r=>(r.nth?'第'+r.nth.join('・'):'毎週')+DOW[r.dow]).join('、')+(x.time?' '+x.time:'')).join('／'):'');}
+$('triplog').addEventListener('change',()=>{S.tripLog=$('triplog').checked;changed();lastKey='';render()});
 $('passend').addEventListener('change',()=>{S.passEnd=$('passend').value;changed();drawAlerts()});
 $('gomi').addEventListener('input',()=>{S.gomi=$('gomi').value;gomiMsg();changed();drawAlerts()});
 $('cal').addEventListener('input',()=>{S.cal=$('cal').value;const n=Object.keys(parseCal(S.cal)).length;$('calmsg').textContent=n?`${n}日分を読み取りました`:'';changed();setTimeout(drawClasses,450)});
@@ -1158,7 +1162,7 @@ $('placebtn').onclick=placeSearch('place');$('placebtn2').onclick=placeSearch('p
 const drawPlace=()=>{$('placecur').textContent='いまの場所：'+S.place.name;
   $('placecur2').innerHTML=S.place2?`学校の場所：${esc(S.place2.name)} <button class="act sub small" id="place2x">外す</button>`:'学校の場所：なし';
   if($('place2x'))$('place2x').onclick=async()=>{delete S.place2;save();drawPlace();await loadWeather(true);refreshAll();if(SITE)loadWarnDirect()}}
-function fillStatic(){$('cal').value=S.cal||'';$('passend').value=S.passEnd||'';$('gomi').value=S.gomi||'';gomiMsg();$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
+function fillStatic(){$('triplog').checked=!!S.tripLog;$('cal').value=S.cal||'';$('passend').value=S.passEnd||'';$('gomi').value=S.gomi||'';gomiMsg();$('w-top').value=S.wear.top;$('w-bottom').value=S.wear.bottom;$('w-outer').value=S.wear.outer;$('songs').value=S.songs;$('playlist').value=S.playlist||'';drawPlace();drawRouteEdit();drawClassEdit()}
 
 /* ウィジェット用の書き出し・読み込み */
 let WJS='';fetch('widget.js').then(r=>r.ok?r.text():'').then(t=>WJS=t).catch(()=>{});
@@ -1192,7 +1196,8 @@ $('mini').onclick=()=>go('today');
 $('exnote').onclick=()=>go('setup');
 addEventListener('hashchange',()=>go(location.hash.slice(1),false));
 $('jmaoff').addEventListener('change',onJma);$('jmapt').addEventListener('change',onJma);
-$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;destManual=true;manualAt=Date.now();sv('destI',destI);drawDest();render()};
+$('dest').onclick=e=>{const d=e.target.closest('[data-d]');if(!d)return;destI=+d.dataset.d;destManual=true;manualAt=Date.now();
+  {const r=S.routes[destI];if(r&&r.kind!=='back'&&r.target!=='class')sv('went',{date:ymd(serviceDate(new Date())),name:r.name})}sv('destI',destI);drawDest();render()};
 $('day').onclick=()=>{const svc=serviceDate(new Date()),o=['weekday','saturday','holiday'],f=ld('dayForce',null);
   try{localStorage.removeItem('dayForce')}catch(e){}const auto=dayType(svc);
   const curT=f&&f.date===ymd(svc)?f.type:auto,next=o[(o.indexOf(curT)+1)%3];
@@ -1218,6 +1223,7 @@ function refreshAll(){drawDay();render();drawClasses();drawSong();drawWeather();
 destI=ld('destI',null);
 // 毎朝は自動で行き先を選ぶ（授業がある日は大学）
 if(ld('destDate','')!==ymd(serviceDate(new Date()))){destI=null;sv('destDate',ymd(serviceDate(new Date())))}
+{const a=autoDest();if(destI!==null&&S.routes[a]&&S.routes[destI]&&S.routes[a].name!==S.routes[destI].name&&outAt())destI=a} // 出かけた先からの帰りは、開いたらすぐ切り替える
 fillStatic();drawDest();sv('destI',destI);refreshAll();go(location.hash.slice(1),false);
 const SITE=!(window.claude&&window.claude.use);
 // 合言葉で開ける設定（me.enc.json：PBKDF2＋AES-GCM で暗号化。合言葉がないと読めない）
